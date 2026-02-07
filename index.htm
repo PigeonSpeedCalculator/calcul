@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>حساب سرعة الحمام</title>
+    
+    <meta name="theme-color" content="#3182ce">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1584/1584961.png">
+    
+    <link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogImhpc2FiIHNhcmEgaGFtYW0iLAogICJzaG9ydF9uYW1lIjogIlNhcmE4SGFtYW0iLAogICJzdGFydF91cmwiOiAiLiIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiI2ZmZmZmZiIsCiAgInRoZW1lX2NvbG9yIjogIiMzMTgyY2UiLAogICJpY29ucyI6IFsKICAgIHsKICAgICAgInNyYyI6ICJodHRwczovL2Nkbi1pY29ucy1wbmcuZmxhdGljb24uY29tLzUxMi8xNTg0LzE1ODQ5NjEucG5nIiwKICAgICAgInNpemVzIjogIjUxMng1MTIiLAogICAgICAidHlwZSI6ICJpbWFnZS9wbmciCiAgICB9CiAgXQp9">
+
+    <style>
+        /* التنسيق الجمالي للتطبيق */
+        body { margin: 0; padding: 0; background: #f0f2f5; font-family: 'Segoe UI', sans-serif; }
+        #pigeon-app-root { max-width: 500px; margin: 0 auto; min-height: 100vh; background: #fff; padding: 15px; position: relative; }
+        .pigeon-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        input { font-size: 16px !important; } /* تمنع الزوم التلقائي في الآيفون */
+        .btn-float { position: fixed; top: 15px; left: 70px; z-index: 1000; background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 30px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        #langMenu { display:none; position:absolute; left:15px; top:60px; background:white; border:1px solid #ddd; border-radius:8px; box-shadow:0 5px 15px rgba(0,0,0,0.1); min-width:120px; z-index: 2000;}
+    </style>
+</head>
+<body>
+
+<div dir="rtl" id="pigeon-app-root">
+    <button class="btn-float" onclick="generateRankings()">حساب 🏆</button>
+
+    <div style="position: absolute; left: 15px; top: 15px; z-index: 100;">
+        <button onclick="toggleLangMenu()" style="background:#f8f9fa; border:1px solid #ddd; border-radius:50%; width:40px; height:40px; font-size:20px;">🌐</button>
+        <div id="langMenu">
+            <div onclick="changeLang('ar')" style="padding:10px; border-bottom:1px solid #eee;">العربية</div>
+            <div onclick="changeLang('fr')" style="padding:10px; border-bottom:1px solid #eee;">Français</div>
+            <div onclick="changeLang('en')" style="padding:10px; border-bottom:1px solid #eee;">English</div>
+            <div onclick="changeLang('es')" style="padding:10px;">Español</div>
+        </div>
+    </div>
+
+    <h2 id="app-title" style="text-align:center; color:#1a202c;">حساب سرعة الحمام</h2>
+
+    <div style="background:#f7fafc; padding:15px; border-radius:12px; border:1px solid #edf2f7; margin-top:20px;">
+        <label id="lbl-file">1. ارفع ملف الـ PDF:</label>
+        <input type="file" id="pdfInput" accept=".pdf" style="width:100%; margin: 10px 0;">
+        <label id="lbl-lache">2. وقت الإطلاق:</label>
+        <input type="text" id="lacheTime" placeholder="07:00:00" maxlength="8" oninput="formatTime(this)" inputmode="numeric" style="width:100%; padding:12px; border-radius:8px; border:1px solid #cbd5e0; text-align:center;">
+        <button id="btn-manual" onclick="addManualEntry()" style="margin-top:10px; width:100%; padding:10px; background:#3182ce; color:white; border:none; border-radius:8px;">+ إضافة متسابق يدوياً</button>
+    </div>
+
+    <div id="searchArea" style="display:none; margin:15px 0;">
+        <input type="text" id="searchInput" onkeyup="filterNames()" placeholder="بحث..." style="width:100%; padding:12px; border:2px solid #3182ce; border-radius:10px; box-sizing:border-box;">
+    </div>
+
+    <div id="inputSection" style="display:none;">
+        <h3 id="input-title">قائمة المتسابقين</h3>
+        <div id="inputCardsContainer"></div>
+    </div>
+
+    <div id="rankingSection" style="display:none; margin-top:20px;">
+        <div id="capture-area" style="background:#fff; border:1px solid #eee; border-radius:10px;">
+            <h3 id="rank-title" style="text-align:center;">النتائج النهائية</h3>
+            <div id="rankingList"></div>
+        </div>
+        <button id="btn-save" onclick="saveAsImage()" style="margin-top:10px; width:100%; padding:15px; background:#4a5568; color:white; border:none; border-radius:10px;">حفظ كصورة 📸</button>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+    // جميع الدوال البرمجية (formatTime, changeLang, generateRankings, etc.)
+    // وضعناها هنا لتشغيل التطبيق بالكامل
+    let currentLang = 'ar';
+    let basePigeons = [];
+    let currentResults = [];
+    const pdfjsLib = window['pdfjs-dist/build/pdf'];
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+    const i18n = {
+        ar: { title: "حساب سرعة الحمام", floatBtn: "حساب 🏆", file: "1. ارفع ملف الـ PDF:", lache: "2. وقت الإطلاق:", manual: "+ إضافة متسابق يدوياً", search: "بحث...", input: "قائمة المتسابقين", rank: "النتائج النهائية", dist: "المسافة", add: "إضافة حمامة", save: "حفظ كصورة 📸", timePl: "00:00:00" },
+        fr: { title: "Vitesse Pigeons", floatBtn: "Calcul 🏆", file: "1. Charger PDF:", lache: "2. Heure Lâcher:", manual: "+ Ajouter Manuel", search: "Chercher...", input: "Racers List", rank: "Classement", dist: "Distance", add: "Ajouter Pigeon", save: "Sauver Image 📸", timePl: "00:00:00" },
+        en: { title: "Pigeon Speed", floatBtn: "Calc 🏆", file: "1. Upload PDF:", lache: "2. Release Time:", manual: "+ Add Manually", search: "Search...", input: "Racers List", rank: "Rankings", dist: "Dist", add: "Add More", save: "Save Image 📸", timePl: "00:00:00" },
+        es: { title: "Cálculo Palomas", floatBtn: "Calcular 🏆", file: "1. Subir PDF:", lache: "2. Hora Suelta:", manual: "+ Añadir Manual", search: "Buscar...", input: "Lista Socios", rank: "Clasificación", dist: "Dist", add: "Añadir más", save: "Guardar 📸", timePl: "00:00:00" }
+    };
+
+    function formatTime(input) {
+        let val = input.value.replace(/\D/g, '');
+        if (val.length > 2 && val.length <= 4) val = val.slice(0, 2) + ':' + val.slice(2);
+        else if (val.length > 4) val = val.slice(0, 2) + ':' + val.slice(2, 4) + ':' + val.slice(4, 6);
+        input.value = val;
+    }
+
+    function toggleLangMenu() {
+        const menu = document.getElementById('langMenu');
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function changeLang(lang) {
+        currentLang = lang;
+        document.getElementById('pigeon-app-root').dir = (lang === 'ar' ? 'rtl' : 'ltr');
+        document.getElementById('app-title').innerText = i18n[lang].title;
+        document.querySelector('.btn-float').innerText = i18n[lang].floatBtn;
+        document.getElementById('lbl-file').innerText = i18n[lang].file;
+        document.getElementById('lbl-lache').innerText = i18n[lang].lache;
+        document.getElementById('btn-manual').innerText = i18n[lang].manual;
+        document.getElementById('searchInput').placeholder = i18n[lang].search;
+        document.getElementById('input-title').innerText = i18n[lang].input;
+        document.getElementById('rank-title').innerText = i18n[lang].rank;
+        document.getElementById('btn-save').innerText = i18n[lang].save;
+        document.getElementById('langMenu').style.display = 'none';
+        renderInputCards();
+    }
+
+    document.getElementById('pdfInput').addEventListener('change', async function(e) {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = async function() {
+            const typedarray = new Uint8Array(this.result);
+            const pdf = await pdfjsLib.getDocument(typedarray).promise;
+            let extracted = [];
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                let lines = {};
+                content.items.forEach(item => {
+                    let y = Math.round(item.transform[5]);
+                    if (!lines[y]) lines[y] = [];
+                    lines[y].push(item);
+                });
+                Object.keys(lines).sort((a,b)=>b-a).forEach(y => {
+                    let row = lines[y].sort((a,b)=>a.transform[4]-b.transform[4]).map(it=>it.str.trim()).filter(s=>s!=="");
+                    if (row.length >= 5 && /^\d+$/.test(row[0])) extracted.push({ name: row[1], dist: parseFloat(row[row.length-1]), manual: false });
+                });
+            }
+            basePigeons = extracted;
+            document.getElementById('searchArea').style.display = 'block';
+            document.getElementById('inputSection').style.display = 'block';
+            renderInputCards();
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    function addManualEntry() {
+        basePigeons.unshift({ name: "", dist: 0, manual: true });
+        document.getElementById('searchArea').style.display = 'block';
+        document.getElementById('inputSection').style.display = 'block';
+        renderInputCards();
+    }
+
+    function renderInputCards() {
+        const container = document.getElementById('inputCardsContainer');
+        container.innerHTML = "";
+        basePigeons.forEach((p, i) => {
+            const card = document.createElement('div');
+            card.className = "pigeon-card";
+            card.setAttribute('data-name', p.name);
+            let nameHtml = p.manual ? `<div style="display:flex; gap:5px; margin-bottom:8px;"><input type="text" placeholder="${i18n[currentLang].namePl}" onchange="basePigeons[${i}].name=this.value" style="flex:2; padding:8px; border-radius:6px; border:1px solid #3182ce;"><input type="number" placeholder="Km" onchange="basePigeons[${i}].dist=parseFloat(this.value)" style="flex:1; padding:8px; border-radius:6px; border:1px solid #3182ce;"></div>` : `<div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span style="font-weight:bold;">${p.name}</span><span>${p.dist.toFixed(3)} Km</span></div>`;
+            card.innerHTML = nameHtml + `<div id="wrap-${i}"><div style="display:flex; gap:5px; margin-bottom:5px;"><input type="text" maxlength="8" oninput="formatTime(this)" inputmode="numeric" placeholder="00:00:00" class="t-inp-${i}" style="flex:1; padding:10px; border:1px solid #edf2f7; border-radius:8px; text-align:center;"><button onclick="this.parentElement.remove()" style="background:#fee2e2; color:#ef4444; border:none; padding:8px; border-radius:6px;">🗑️</button></div></div><button onclick="addInput(${i})" style="background:none; border:1px dashed #4299e1; color:#4299e1; width:100%; padding:5px; border-radius:6px; font-size:12px;">+ ${i18n[currentLang].add}</button>`;
+            container.appendChild(card);
+        });
+    }
+
+    function addInput(idx) {
+        const w = document.getElementById(`wrap-${idx}`);
+        const div = document.createElement('div');
+        div.style.cssText = "display:flex; align-items:center; gap:5px; margin-bottom:5px;";
+        div.innerHTML = `<input type="text" maxlength="8" oninput="formatTime(this)" inputmode="numeric" placeholder="00:00:00" class="t-inp-${idx}" style="flex:1; padding:10px; border:1px solid #edf2f7; border-radius:8px; text-align:center;"><button onclick="this.parentElement.remove()" style="background:#fee2e2; color:#ef4444; border:none; padding:8px; border-radius:6px;">🗑️</button>`;
+        w.appendChild(div);
+    }
+
+    function generateRankings() {
+        currentResults = [];
+        const lache = document.getElementById('lacheTime').value;
+        if(lache.length < 5) return alert("أدخل وقت الإطلاق");
+        basePigeons.forEach((p, i) => {
+            document.querySelectorAll(`.t-inp-${i}`).forEach(inp => {
+                if(inp.value.length >= 5 && p.name && p.dist > 0) {
+                    let d1 = new Date("2026-01-25 " + lache);
+                    let d2 = new Date("2026-01-25 " + inp.value);
+                    let diff = (d2 - d1) / 60000;
+                    if(diff <= 0) diff += 1440;
+                    currentResults.push({ id: Math.random(), name: p.name, dist: p.dist, time: inp.value, speed: (p.dist * 1000) / diff });
+                }
+            });
+        });
+        currentResults.sort((a,b) => b.speed - a.speed);
+        renderRankList();
+    }
+
+    function renderRankList() {
+        const list = document.getElementById('rankingList'); list.innerHTML = "";
+        currentResults.forEach((item, i) => {
+            list.innerHTML += `<div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #edf2f7; ${i < 3 ? 'background:#fffaf0;' : ''}"><div><b>${i+1}. ${item.name}</b><br><small>${item.dist.toFixed(3)} Km | ${item.time}</small></div><div style="display:flex; align-items:center; gap:10px;"><b style="color:#e53e3e;">${item.speed.toFixed(3)}</b><button onclick="this.parentElement.parentElement.remove()" style="background:#fee2e2; color:#ef4444; border:none; border-radius:5px; padding:4px;">🗑️</button></div></div>`;
+        });
+        document.getElementById('rankingSection').style.display = 'block';
+    }
+
+    function saveAsImage() {
+        html2canvas(document.getElementById('capture-area')).then(canvas => {
+            const link = document.createElement('a'); link.download = 'Result.png'; link.href = canvas.toDataURL(); link.click();
+        });
+    }
+
+    // تسجيل الـ Service Worker للعمل أوفلاين
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js');
+    }
+</script>
+</body>
+</html>
