@@ -1,7 +1,24 @@
-const CACHE_NAME = 'pigeon-v1';
-self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['./', 'index.html'])));
-});
-self.addEventListener('fetch', e => {
-  e.respondWith(caches.match(e.request).then(res => res || fetch(e.request)));
-});
+{
+  "name": "حساب سرعة الحمام",
+  "short_name": "سرعة الحمام",
+  "description": "تطبيق احترافي لحساب سرعة الحمام الزاجل من ملفات PDF",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3182ce",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1584/1584961.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1584/1584961.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
