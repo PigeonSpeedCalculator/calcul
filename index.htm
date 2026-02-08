@@ -9,68 +9,56 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#3182ce">
     <style>
-        body { margin: 0; padding: 0; background: #f0f2f5; font-family: 'Segoe UI', Tahoma, sans-serif; }
-        #app-root { max-width: 500px; margin: 0 auto; min-height: 100vh; background: #fff; position: relative; padding-bottom: 50px; }
+        body { margin: 0; background: #f0f2f5; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        #app-root { max-width: 500px; margin: 0 auto; min-height: 100vh; background: #fff; position: relative; }
         
-        /* شريط علوي مثبت يحتوي على البحث وزر الحساب */
+        /* تثبيت البحث وزر الحساب في الأعلى */
         .sticky-header {
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            background: #fff;
-            padding: 10px 15px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            position: sticky; top: 0; z-index: 1000;
+            background: #ffffff; padding: 12px 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: flex; flex-direction: column; gap: 10px;
         }
-
-        .header-top { display: flex; justify-content: space-between; align-items: center; }
-        
+        .header-row { display: flex; justify-content: space-between; align-items: center; }
         .btn-calc { 
             background: #27ae60; color: white; border: none; 
-            padding: 8px 20px; border-radius: 20px; font-weight: bold; 
-            cursor: pointer; font-size: 16px; border: 2px solid #fff;
+            padding: 10px 25px; border-radius: 25px; font-weight: bold; 
+            cursor: pointer; font-size: 16px; transition: 0.3s;
         }
-
         #searchInput { 
             width: 100%; padding: 12px; border: 2px solid #3182ce; 
-            border-radius: 10px; font-size: 16px !important; box-sizing: border-box;
+            border-radius: 12px; font-size: 16px !important; box-sizing: border-box;
         }
 
         .content { padding: 15px; }
         .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; margin-bottom: 12px; }
         input[type="text"], input[type="number"] { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #cbd5e0; border-radius: 8px; font-size: 16px !important; box-sizing: border-box; text-align: center; }
         
-        /* واجهة النتائج */
-        #rankingSection { margin-top: 20px; border-top: 3px solid #3182ce; padding-top: 20px; }
+        #rankingSection { margin-top: 20px; border-top: 4px solid #3182ce; padding-top: 15px; }
         .result-item { display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid #edf2f7; }
-        .top-3 { background: #fffaf0; }
+        .top-1 { background: #fffaf0; border-right: 4px solid #ed8936; }
         
-        .btn-save { width: 100%; padding: 15px; background: #4a5568; color: white; border: none; border-radius: 10px; font-weight: bold; margin-top: 15px; cursor: pointer; }
-        .delete-btn { background:#fee2e2; color:#ef4444; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; }
+        .btn-save { width: 100%; padding: 15px; background: #4a5568; color: white; border: none; border-radius: 12px; font-weight: bold; margin-top: 10px; cursor: pointer; font-size: 16px; }
+        .delete-btn { background:#fee2e2; color:#ef4444; border:none; padding:8px; border-radius:6px; cursor:pointer; }
     </style>
 </head>
 <body>
 
 <div dir="rtl" id="app-root">
     <div class="sticky-header">
-        <div class="header-top">
+        <div class="header-row">
             <h3 style="margin:0; color:#3182ce;">سرعة الحمام 🕊️</h3>
-            <button class="btn-calc" onclick="generateRankings()">حساب النتائج 🏆</button>
+            <button class="btn-calc" onclick="generateRankings()">حساب 🏆</button>
         </div>
-        <div id="searchArea">
-            <input type="text" id="searchInput" onkeyup="filterNames()" placeholder="ابحث عن اسم المتسابق...">
-        </div>
+        <input type="text" id="searchInput" onkeyup="filterNames()" placeholder="بحث سريع عن اسم...">
     </div>
 
     <div class="content">
         <div class="card" style="background:#f8fafc;">
-            <label style="font-weight:bold;">1. ارفع ملف الـ PDF:</label>
+            <b>1. ملف الـ PDF ووقت الإطلاق:</b>
             <input type="file" id="pdfInput" accept=".pdf">
-            <label style="font-weight:bold;">2. وقت الإطلاق:</label>
-            <input type="text" id="lacheTime" placeholder="07:00:00" maxlength="8" oninput="formatTime(this)" inputmode="numeric">
-            <button onclick="addManualEntry()" style="margin-top:10px; background:#3182ce; color:white; border:none; padding:10px; border-radius:8px; width:100%; font-weight:bold;">+ إضافة متسابق يدوياً</button>
+            <input type="text" id="lacheTime" placeholder="وقت الإطلاق 07:00:00" maxlength="8" oninput="formatTime(this)" inputmode="numeric">
+            <button onclick="addManualEntry()" style="background:#3182ce; color:white; border:none; padding:10px; border-radius:8px; width:100%; cursor:pointer;">+ إضافة يدوية</button>
         </div>
 
         <div id="inputSection">
@@ -78,10 +66,8 @@
         </div>
 
         <div id="rankingSection" style="display:none;">
-            <div id="capture-area" style="background:#fff; border:1px solid #ddd; border-radius:8px; overflow:hidden;">
-                <div style="background:#3182ce; color:white; padding:15px; text-align:center;">
-                    <h3 style="margin:0;">قائمة المتصدرين</h3>
-                </div>
+            <div id="capture-area" style="background:#fff; border-radius:8px; overflow:hidden;">
+                <div style="background:#3182ce; color:white; padding:12px; text-align:center;"><b>لوحة المتصدرين</b></div>
                 <div id="rankingList"></div>
             </div>
             <button class="btn-save" onclick="saveAsImage()">تحميل النتيجة كصورة 📸</button>
@@ -104,7 +90,7 @@
         t.value = v;
     }
 
-    document.getElementById('pdfInput').addEventListener('change', async function(e) {
+    document.getElementById('pdfInput').addEventListener('change', async (e) => {
         const file = e.target.files[0];
         const reader = new FileReader();
         reader.onload = async function() {
@@ -122,7 +108,7 @@
                 Object.keys(lines).sort((a,b)=>b-a).forEach(y => {
                     let row = lines[y].sort((a,b)=>a.transform[4]-b.transform[4]).map(it=>it.str.trim()).filter(s=>s!=="");
                     if (row.length >= 5 && /^\d+$/.test(row[0])) {
-                        extracted.push({ name: row[1], dist: parseFloat(row[row.length-1]), manual: false });
+                        extracted.push({ name: row[1], dist: parseFloat(row[row.length-1]) });
                     }
                 });
             }
@@ -144,17 +130,10 @@
             const card = document.createElement('div');
             card.className = "card";
             card.setAttribute('data-name', p.name);
-            let head = p.manual ? `<div style="display:flex; gap:10px;"><input type="text" placeholder="الاسم" onchange="basePigeons[${i}].name=this.value; this.parentElement.parentElement.setAttribute('data-name', this.value)" style="flex:2;"><input type="number" placeholder="Km" onchange="basePigeons[${i}].dist=parseFloat(this.value)" style="flex:1;"></div>` : `<div style="display:flex; justify-content:space-between; font-weight:bold;"><span>${p.name}</span><span style="color:#3182ce;">${p.dist.toFixed(3)} Km</span></div>`;
-            card.innerHTML = head + `<div id="wrap-${i}"><div style="display:flex; gap:10px; margin-top:10px;"><input type="text" maxlength="8" oninput="formatTime(this)" inputmode="numeric" placeholder="00:00:00" class="t-inp-${i}" style="flex:1;"><button onclick="this.parentElement.remove()" class="delete-btn">🗑️</button></div></div><button onclick="addInput(${idx=i})" style="background:none; border:1px dashed #3182ce; color:#3182ce; font-size:12px; margin-top:5px; cursor:pointer; width:100%;">+ إضافة توقيت آخر</button>`;
+            let head = p.manual ? `<div style="display:flex; gap:5px;"><input type="text" placeholder="الاسم" onchange="basePigeons[${i}].name=this.value" style="flex:2;"><input type="number" placeholder="Km" onchange="basePigeons[${i}].dist=parseFloat(this.value)" style="flex:1;"></div>` : `<div style="display:flex; justify-content:space-between;"><b>${p.name}</b><span>${p.dist.toFixed(3)} Km</span></div>`;
+            card.innerHTML = head + `<div style="display:flex; gap:5px; margin-top:8px;"><input type="text" maxlength="8" oninput="formatTime(this)" inputmode="numeric" placeholder="00:00:00" class="t-inp-${i}" style="flex:1;"></div>`;
             container.appendChild(card);
         });
-    }
-
-    function addInput(idx) {
-        const div = document.createElement('div');
-        div.style.cssText = "display:flex; gap:10px; margin-top:10px;";
-        div.innerHTML = `<input type="text" maxlength="8" oninput="formatTime(this)" inputmode="numeric" placeholder="00:00:00" class="t-inp-${idx}" style="flex:1;"><button onclick="this.parentElement.remove()" class="delete-btn">🗑️</button>`;
-        document.getElementById(`wrap-${idx}`).appendChild(div);
     }
 
     function filterNames() {
@@ -167,7 +146,7 @@
     function generateRankings() {
         let results = [];
         const lache = document.getElementById('lacheTime').value;
-        if(lache.length < 5) return alert("يرجى إدخال وقت الإطلاق أولاً");
+        if(lache.length < 5) return alert("أدخل وقت الإطلاق");
         
         basePigeons.forEach((p, i) => {
             document.querySelectorAll(`.t-inp-${i}`).forEach(inp => {
@@ -181,19 +160,16 @@
             });
         });
         results.sort((a,b) => b.speed - a.speed);
-        const list = document.getElementById('rankingList');
-        list.innerHTML = results.map((r, i) => `<div class="result-item ${i < 3 ? 'top-3' : ''}"><div><b>${i+1}. ${r.name}</b><br><small>${r.dist.toFixed(3)} Km | ${r.time}</small></div><b style="color:#e53e3e; font-size:18px;">${r.speed.toFixed(3)}</b></div>`).join('');
+        document.getElementById('rankingList').innerHTML = results.map((r, i) => `<div class="result-item ${i==0?'top-1':''}"><div><b>${i+1}. ${r.name}</b><br><small>${r.dist.toFixed(3)} Km | ${r.time}</small></div><b>${r.speed.toFixed(3)}</b></div>`).join('');
         document.getElementById('rankingSection').style.display = 'block';
-        
-        // التمرير التلقائي للنتائج
         document.getElementById('rankingSection').scrollIntoView({ behavior: 'smooth' });
     }
 
     function saveAsImage() {
         const area = document.getElementById('capture-area');
-        html2canvas(area, { scale: 2 }).then(canvas => {
+        html2canvas(area).then(canvas => {
             const link = document.createElement('a');
-            link.download = 'نتائج_السباق.png';
+            link.download = 'results.png';
             link.href = canvas.toDataURL();
             link.click();
         });
