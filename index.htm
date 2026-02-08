@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl" id="html-tag">
+<html lang="en" dir="ltr" id="html-tag">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -20,80 +20,84 @@
 
         body {
             margin: 0; background-color: var(--bg); color: var(--text);
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* Header & Controls */
+        /* Modern Header */
         .app-header {
             position: sticky; top: 0; z-index: 1000;
-            background: var(--card); padding: 12px 15px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background: var(--card); padding: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
             border-bottom: 3px solid var(--primary);
         }
 
-        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        
-        .brand { font-weight: 800; color: var(--primary); font-size: 1.1rem; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .brand { font-weight: 800; color: var(--primary); font-size: 1.2rem; letter-spacing: 0.5px; }
 
         .lang-selector {
-            padding: 5px 10px; border-radius: 8px; border: 1px solid #e2e8f0;
-            background: #fff; font-size: 0.8rem; cursor: pointer;
+            padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0;
+            background: #f1f5f9; font-size: 0.85rem; font-weight: 600; cursor: pointer;
         }
 
         .btn-calc {
             background: var(--success); color: white; border: none;
-            padding: 8px 20px; border-radius: 50px; font-weight: bold;
-            cursor: pointer; transition: 0.2s;
+            padding: 10px 25px; border-radius: 50px; font-weight: bold;
+            cursor: pointer; box-shadow: 0 4px 6px rgba(22, 163, 74, 0.2);
         }
 
         #searchBox {
-            width: 100%; padding: 10px 15px; border: 2px solid #e2e8f0;
-            border-radius: 10px; outline: none; box-sizing: border-box;
+            width: 100%; padding: 12px 18px; border: 2px solid #e2e8f0;
+            border-radius: 12px; outline: none; box-sizing: border-box; font-size: 16px;
         }
 
-        /* Layout Container */
-        .container { max-width: 500px; margin: 0 auto; padding: 15px; }
+        .container { max-width: 550px; margin: 0 auto; padding: 20px 15px; }
 
         .card {
-            background: var(--card); border-radius: 15px; padding: 15px;
-            margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            background: var(--card); border-radius: 20px; padding: 20px;
+            margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            border: 1px solid #f1f5f9;
         }
 
-        .input-label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 5px; color: #64748b; }
+        .input-label { display: block; font-weight: 700; font-size: 0.9rem; margin-bottom: 8px; color: #64748b; }
 
-        input[type="datetime-local"], input[type="file"], input[type="text"] {
-            width: 100%; padding: 10px; border: 1px solid #cbd5e0;
-            border-radius: 8px; margin-bottom: 10px; box-sizing: border-box;
+        input[type="datetime-local"], input[type="file"], input[type="text"], input[type="number"] {
+            width: 100%; padding: 12px; border: 1px solid #cbd5e0;
+            border-radius: 10px; margin-bottom: 12px; box-sizing: border-box; font-size: 15px;
         }
 
-        /* Racer Card Styles */
-        .racer-card { border-inline-start: 5px solid var(--primary); }
-        .racer-info { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 10px; }
+        /* Racer Items */
+        .racer-card { border-left: 6px solid var(--primary); position: relative; }
+        .racer-header-row { display: flex; gap: 10px; margin-bottom: 15px; }
         
-        .pigeon-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; background: #f1f5f9; padding: 5px; border-radius: 8px; }
-        
+        .pigeon-row { 
+            display: flex; align-items: center; gap: 10px; margin-bottom: 10px; 
+            background: #f8fafc; padding: 10px; border-radius: 12px;
+        }
+
         .btn-add-p {
             width: 100%; background: #eff6ff; color: var(--primary);
-            border: 2px dashed var(--primary); padding: 8px;
-            border-radius: 8px; font-weight: 600; cursor: pointer;
+            border: 2px dashed var(--primary); padding: 12px;
+            border-radius: 12px; font-weight: 700; cursor: pointer; margin-top: 5px;
         }
 
-        .btn-del { color: var(--danger); border: none; background: none; font-size: 1.2rem; cursor: pointer; }
+        .btn-del-racer { position: absolute; top: 15px; right: 15px; color: var(--danger); cursor: pointer; font-weight: bold; }
+        .btn-del-time { color: var(--danger); border: none; background: none; font-size: 1.5rem; cursor: pointer; }
 
-        /* Result Section */
-        #result-area { display: none; margin-top: 20px; }
-        .res-table { background: white; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; }
-        .res-head { background: var(--primary); color: white; padding: 12px; text-align: center; font-weight: bold; }
-        .res-row { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #f1f5f9; align-items: center; }
+        /* Results Area */
+        #result-area { display: none; margin-top: 30px; }
+        .res-table { background: white; border-radius: 20px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        .res-head { background: var(--primary); color: white; padding: 18px; text-align: center; font-weight: 800; font-size: 1.2rem; }
+        .res-row { display: flex; justify-content: space-between; padding: 18px; border-bottom: 1px solid #f1f5f9; align-items: center; }
         
         .copyright {
-            text-align: center; padding: 15px; color: #94a3b8;
-            font-weight: 800; font-size: 0.7rem; letter-spacing: 3px;
+            text-align: center; padding: 25px; color: #cbd5e0;
+            font-weight: 900; font-size: 0.8rem; letter-spacing: 5px; text-transform: uppercase;
         }
 
         .btn-save {
-            width: 100%; background: #334155; color: white; padding: 15px;
-            border: none; border-radius: 12px; font-weight: bold; margin-top: 10px; cursor: pointer;
+            width: 100%; background: #1e293b; color: white; padding: 18px;
+            border: none; border-radius: 15px; font-weight: 800; margin-top: 15px; cursor: pointer; font-size: 1rem;
         }
     </style>
 </head>
@@ -102,51 +106,49 @@
     <header class="app-header">
         <div class="header-top">
             <div class="brand">ELMAKKAOUY PRO</div>
-            <select class="lang-selector" onchange="changeLanguage(this.value)">
-                <option value="ar">العربية</option>
+            <select class="lang-selector" id="langSelect" onchange="changeLanguage(this.value)">
                 <option value="en">English</option>
+                <option value="ar">العربية</option>
                 <option value="fr">Français</option>
-                <option value="es">Español</option>
             </select>
-            <button class="btn-calc" id="ui-calc" onclick="calculate()">حساب 🏆</button>
+            <button class="btn-calc" id="ui-calc" onclick="calculateResults()">Calculate 🏆</button>
         </div>
-        <input type="text" id="searchBox" onkeyup="filterList()" placeholder="بحث...">
+        <input type="text" id="searchBox" onkeyup="filterRacers()" placeholder="Search racers...">
     </header>
 
     <main class="container">
         <div class="card">
-            <label class="input-label" id="ui-pdf-label">📄 ارفع ملف PDF</label>
+            <label class="input-label" id="ui-pdf-label">📄 Upload PDF Results</label>
             <input type="file" id="pdfInput" accept=".pdf">
             
-            <label class="input-label" id="ui-release-label">🏁 وقت الإطلاق</label>
+            <label class="input-label" id="ui-release-label">🏁 Race Release Time</label>
             <input type="datetime-local" id="releaseDate" step="1">
             
-            <button class="btn-add-p" style="background: var(--primary); color: white; border: none;" id="ui-manual" onclick="addManualRacer()">+ متسابق يدوي</button>
+            <button class="btn-add-p" style="background: var(--primary); color: white; border: none; margin-top: 10px;" id="ui-manual" onclick="addManualRacer()">+ Add Manual Racer</button>
         </div>
 
         <div id="racersList"></div>
 
         <div id="result-area">
             <div id="capture-zone" class="res-table">
-                <div class="res-head" id="ui-res-title">النتائج الرسمية</div>
+                <div class="res-head" id="ui-res-title">Official Rankings</div>
                 <div id="rankingList"></div>
                 <div class="copyright">BY ELMAKKAOUY</div>
             </div>
-            <button class="btn-save" id="ui-save" onclick="saveImage()">حفظ كصورة 📸</button>
+            <button class="btn-save" id="ui-save" onclick="saveAsImage()">Save Result Image 📸</button>
         </div>
     </main>
 
     <script>
         let racers = [];
-        const translations = {
-            ar: { calc: "حساب 🏆", search: "بحث...", pdf: "📄 ارفع ملف PDF", release: "🏁 وقت الإطلاق", manual: "+ متسابق يدوي", res: "النتائج الرسمية", save: "حفظ كصورة 📸", add: "+ حمامة أخرى", mpm: "متر/دقيقة", dir: "rtl" },
-            en: { calc: "Calculate 🏆", search: "Search...", pdf: "📄 Upload PDF", release: "🏁 Release Time", manual: "+ Manual Racer", res: "Official Results", save: "Save Image 📸", add: "+ Extra Pigeon", mpm: "m/min", dir: "ltr" },
-            fr: { calc: "Calculer 🏆", search: "Chercher...", pdf: "📄 Charger PDF", release: "🏁 Heure Lâcher", manual: "+ Manuel", res: "Résultats Officiels", save: "Enregistrer 📸", add: "+ Pigeon Extra", mpm: "m/min", dir: "ltr" },
-            es: { calc: "Calcular 🏆", search: "Buscar...", pdf: "📄 Subir PDF", release: "🏁 Hora Suelta", manual: "+ Manual", res: "Resultados Oficiales", save: "Guardar 📸", add: "+ Paloma Extra", mpm: "m/min", dir: "ltr" }
+        const langData = {
+            en: { calc: "Calculate 🏆", search: "Search racers...", pdf: "📄 Upload PDF Results", release: "🏁 Race Release Time", manual: "+ Add Manual Racer", res: "Official Rankings", save: "Save Result Image 📸", add: "+ Add Another Pigeon", mpm: "m/min", dir: "ltr", namePh: "Racer Name", distPh: "Distance (Km)" },
+            ar: { calc: "حساب 🏆", search: "بحث عن متسابق...", pdf: "📄 ارفع ملف النتائج", release: "🏁 وقت الإطلاق", manual: "+ إضافة متسابق يدوي", res: "النتائج الرسمية", save: "حفظ كصورة 📸", add: "+ حمامة أخرى", mpm: "متر/دقيقة", dir: "rtl", namePh: "اسم المتسابق", distPh: "المسافة (كم)" },
+            fr: { calc: "Calculer 🏆", search: "Rechercher...", pdf: "📄 Charger le PDF", release: "🏁 Heure du Lâcher", manual: "+ Ajouter Manuel", res: "Classement Officiel", save: "Enregistrer Image 📸", add: "+ Pigeon Supplémentaire", mpm: "m/min", dir: "ltr", namePh: "Nom", distPh: "Distance (Km)" }
         };
 
         function changeLanguage(lang) {
-            const t = translations[lang];
+            const t = langData[lang];
             document.getElementById('html-tag').dir = t.dir;
             document.getElementById('html-tag').lang = lang;
             document.getElementById('ui-calc').innerText = t.calc;
@@ -156,16 +158,17 @@
             document.getElementById('ui-manual').innerText = t.manual;
             document.getElementById('ui-res-title').innerText = t.res;
             document.getElementById('ui-save').innerText = t.save;
-            renderList();
+            renderRacerList();
         }
 
-        function getZeroedDate() {
+        function getZeroedNow() {
             const d = new Date();
-            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T00:00:00`;
+            const date = d.toISOString().split('T')[0];
+            return `${date}T00:00:00`;
         }
 
         window.onload = () => {
-            document.getElementById('releaseDate').value = getZeroedDate();
+            document.getElementById('releaseDate').value = getZeroedNow();
         };
 
         // PDF Processing
@@ -177,7 +180,7 @@
             const reader = new FileReader();
             reader.onload = async function() {
                 const pdf = await pdfjs.getDocument(new Uint8Array(this.result)).promise;
-                let data = [];
+                let extracted = [];
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
                     const content = await page.getTextContent();
@@ -191,49 +194,67 @@
                         let row = lines[y].sort((a,b)=>a.transform[4]-b.transform[4]).map(it => it.str.trim()).filter(s => s !== "");
                         let dist = row.find(v => /^\d+\.\d{3}$/.test(v));
                         let name = row.find(v => v.length > 3 && isNaN(v));
-                        if (dist && name) data.push({ name, dist: parseFloat(dist) });
+                        if (dist && name) extracted.push({ name, dist: parseFloat(dist), isManual: false });
                     });
                 }
-                racers = data;
-                renderList();
+                racers = extracted;
+                renderRacerList();
             };
             reader.readAsArrayBuffer(file);
         };
 
-        function renderList() {
-            const lang = document.getElementById('html-tag').lang || 'ar';
-            const t = translations[lang];
+        function addManualRacer() {
+            racers.unshift({ name: "", dist: 0, isManual: true, id: Date.now() });
+            renderRacerList();
+        }
+
+        function renderRacerList() {
+            const lang = document.getElementById('html-tag').lang || 'en';
+            const t = langData[lang];
             const container = document.getElementById('racersList');
             container.innerHTML = racers.map((r, i) => `
                 <div class="card racer-card" data-search="${r.name.toLowerCase()}">
-                    <div class="racer-info"><span>${r.name}</span><span>${r.dist} Km</span></div>
-                    <div id="p-list-${i}"><div class="pigeon-row"><input type="datetime-local" class="t-in-${i}" value="${getZeroedDate()}" step="1"></div></div>
-                    <button class="btn-add-p" onclick="addPigeonField(${i})">${t.add}</button>
+                    <span class="btn-del-racer" onclick="removeRacer(${i})">×</span>
+                    <div class="racer-header-row">
+                        ${r.isManual ? 
+                            `<input type="text" placeholder="${t.namePh}" oninput="racers[${i}].name=this.value" value="${r.name}">
+                             <input type="number" placeholder="${t.distPh}" oninput="racers[${i}].dist=parseFloat(this.value)" value="${r.dist || ''}">` 
+                            : `<b>${r.name}</b> <b style="color:var(--primary)">${r.dist} Km</b>`}
+                    </div>
+                    <div id="times-box-${i}">
+                        <div class="pigeon-row">
+                            <input type="datetime-local" class="time-in-${i}" value="${getZeroedNow()}" step="1">
+                        </div>
+                    </div>
+                    <button class="btn-add-p" onclick="addTimeRow(${i})">${t.add}</button>
                 </div>
             `).join('');
         }
 
-        function addPigeonField(i) {
+        function addTimeRow(i) {
             const div = document.createElement('div');
             div.className = 'pigeon-row';
-            div.innerHTML = `<input type="datetime-local" class="t-in-${i}" value="${getZeroedDate()}" step="1"><button class="btn-del" onclick="this.parentElement.remove()">×</button>`;
-            document.getElementById(`p-list-${i}`).appendChild(div);
+            div.innerHTML = `<input type="datetime-local" class="time-in-${i}" value="${getZeroedNow()}" step="1"><button class="btn-del-time" onclick="this.parentElement.remove()">×</button>`;
+            document.getElementById(`times-box-${i}`).appendChild(div);
         }
 
-        function calculate() {
-            const relStr = document.getElementById('releaseDate').value;
-            if (!relStr) return;
-            const release = new Date(relStr);
+        function removeRacer(i) { racers.splice(i, 1); renderRacerList(); }
+
+        function calculateResults() {
+            const relInput = document.getElementById('releaseDate').value;
+            if (!relInput) return alert("Please set release time!");
+            const release = new Date(relInput);
             let results = [];
 
             racers.forEach((r, i) => {
-                document.querySelectorAll(`.t-in-${i}`).forEach(inp => {
+                if (!r.name || !r.dist) return;
+                document.querySelectorAll(`.time-in-${i}`).forEach(inp => {
                     if (inp.value) {
                         const arrival = new Date(inp.value);
-                        let diff = (arrival - release) / 1000;
-                        if (diff > 0) {
-                            diff -= getDeadSeconds(release, arrival);
-                            let speed = (r.dist * 1000) / (diff / 60);
+                        let diffSec = (arrival - release) / 1000;
+                        if (diffSec > 0) {
+                            diffSec -= getDeadTimeSec(release, arrival);
+                            let speed = (r.dist * 1000) / (diffSec / 60);
                             results.push({ name: r.name, dist: r.dist, speed, time: inp.value.split('T')[1] });
                         }
                     }
@@ -241,59 +262,56 @@
             });
 
             results.sort((a, b) => b.speed - a.speed);
-            showResults(results);
+            showRanking(results);
         }
 
-        function getDeadSeconds(start, end) {
+        function getDeadTimeSec(start, end) {
             let dead = 0;
             let cur = new Date(start);
             cur.setHours(0,0,0,0);
             while (cur <= end) {
-                let nS = new Date(cur); nS.setHours(20, 30, 0);
-                let mE = new Date(cur); mE.setDate(mE.getDate()+1); mE.setHours(6, 0, 0);
-                let oS = new Date(Math.max(start, nS));
-                let oE = new Date(Math.min(end, mE));
-                if (oS < oE) dead += (oE - oS) / 1000;
+                // Night Dead Time: 20:30:00 to 06:00:00
+                let nStart = new Date(cur); nStart.setHours(20, 30, 0);
+                let mEnd = new Date(cur); mEnd.setDate(mEnd.getDate() + 1); mEnd.setHours(6, 0, 0);
+                let oStart = new Date(Math.max(start, nStart));
+                let oEnd = new Date(Math.min(end, mEnd));
+                if (oStart < oEnd) dead += (oEnd - oStart) / 1000;
                 cur.setDate(cur.getDate() + 1);
             }
             return dead;
         }
 
-        function showResults(data) {
-            const lang = document.getElementById('html-tag').lang || 'ar';
-            const t = translations[lang];
-            const container = document.getElementById('rankingList');
-            container.innerHTML = data.map((r, i) => `
+        function showRanking(data) {
+            const lang = document.getElementById('html-tag').lang || 'en';
+            const t = langData[lang];
+            const list = document.getElementById('rankingList');
+            list.innerHTML = data.map((r, i) => `
                 <div class="res-row">
                     <div><b>${i+1}. ${r.name}</b><br><small>${r.dist} Km | ${r.time}</small></div>
-                    <div style="text-align:inline-start">
-                        <b style="color:var(--success); font-size:1.1rem">${r.speed.toFixed(3)}</b><br>
+                    <div style="text-align:right">
+                        <b style="color:var(--success); font-size:1.3rem">${r.speed.toFixed(3)}</b><br>
                         <small>${t.mpm}</small>
                     </div>
                 </div>
             `).join('');
             document.getElementById('result-area').style.display = 'block';
+            window.scrollTo({ top: document.getElementById('result-area').offsetTop, behavior: 'smooth' });
         }
 
-        function saveImage() {
+        function saveAsImage() {
             html2canvas(document.getElementById('capture-zone'), { scale: 3 }).then(canvas => {
-                const a = document.createElement('a');
-                a.download = 'Result_ELMAKKAOUY.png';
-                a.href = canvas.toDataURL();
-                a.click();
+                const link = document.createElement('a');
+                link.download = 'PigeonResults_ELMAKKAOUY.png';
+                link.href = canvas.toDataURL();
+                link.click();
             });
         }
 
-        function filterList() {
+        function filterRacers() {
             let q = document.getElementById('searchBox').value.toLowerCase();
             document.querySelectorAll('.racer-card').forEach(c => {
                 c.style.display = c.dataset.search.includes(q) ? 'block' : 'none';
             });
-        }
-
-        function addManualRacer() {
-            racers.unshift({ name: "Racer " + (racers.length+1), dist: 0 });
-            renderList();
         }
     </script>
 </body>
