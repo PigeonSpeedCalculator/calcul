@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pigeon Speed Calculator</title>
+    <title>Pigeon Speed Pro</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#3182ce">
     <style>
         body { margin: 0; background: #f0f2f5; font-family: 'Segoe UI', Tahoma, sans-serif; }
         #app-root { max-width: 500px; margin: 0 auto; min-height: 100vh; background: #fff; position: relative; }
         
-        /* Sticky Header for Search and Calc */
+        /* Sticky Header */
         .sticky-header {
             position: sticky; top: 0; z-index: 1000;
             background: #ffffff; padding: 12px 15px;
@@ -18,29 +18,26 @@
             display: flex; flex-direction: column; gap: 10px;
         }
         .header-row { display: flex; justify-content: space-between; align-items: center; }
-        .btn-calc { 
-            background: #27ae60; color: white; border: none; 
-            padding: 10px 25px; border-radius: 25px; font-weight: bold; 
-            cursor: pointer; font-size: 16px; transition: 0.3s;
-        }
-        #searchInput { 
-            width: 100%; padding: 12px; border: 2px solid #3182ce; 
-            border-radius: 12px; font-size: 16px !important; box-sizing: border-box;
-        }
+        .btn-calc { background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+        
+        #searchInput { width: 100%; padding: 12px; border: 2px solid #3182ce; border-radius: 10px; font-size: 16px !important; box-sizing: border-box; }
+        
+        /* Language Selector */
+        .lang-btn { background: #f8f9fa; border: 1px solid #ddd; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; }
+        #langMenu { display:none; position:absolute; left:15px; top:55px; background:white; border:1px solid #ddd; border-radius:8px; box-shadow:0 5px 15px rgba(0,0,0,0.1); z-index: 2000; }
+        #langMenu div { padding:10px 20px; cursor:pointer; border-bottom:1px solid #eee; }
 
         .content { padding: 15px; }
         .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; margin-bottom: 12px; }
-        input[type="text"], input[type="number"] { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #cbd5e0; border-radius: 8px; font-size: 16px !important; box-sizing: border-box; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 5px 0; border: 1px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; text-align: center; }
         
+        /* Rankings & Copyright */
         #rankingSection { margin-top: 20px; border-top: 4px solid #3182ce; padding-top: 15px; }
         .result-item { display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid #edf2f7; }
-        .top-1 { background: #fffaf0; border-left: 4px solid #ed8936; }
+        .copyright { text-align: center; padding: 15px; font-weight: bold; color: #a0aec0; letter-spacing: 2px; font-size: 12px; background: #f8fafc; }
         
-        .btn-save { width: 100%; padding: 15px; background: #4a5568; color: white; border: none; border-radius: 12px; font-weight: bold; margin-top: 10px; cursor: pointer; font-size: 16px; }
-        .delete-btn { background:#fee2e2; color:#ef4444; border:none; padding:8px; border-radius:6px; cursor:pointer; }
-        
-        /* Watermark Style */
-        .watermark { text-align: center; padding: 10px; font-weight: bold; color: #cbd5e0; letter-spacing: 2px; font-size: 14px; text-transform: uppercase; }
+        .btn-add-time { background: none; border: 1px dashed #3182ce; color: #3182ce; padding: 5px; width: 100%; border-radius: 5px; cursor: pointer; font-size: 12px; margin-top: 5px; }
+        .delete-btn { background:#fee2e2; color:#ef4444; border:none; padding:5px 10px; border-radius:5px; cursor:pointer; }
     </style>
 </head>
 <body>
@@ -48,31 +45,35 @@
 <div id="app-root">
     <div class="sticky-header">
         <div class="header-row">
-            <h3 style="margin:0; color:#3182ce;">Pigeon Speed 🕊️</h3>
-            <button class="btn-calc" onclick="generateRankings()">Calculate 🏆</button>
+            <button class="lang-btn" onclick="toggleLang()">🌐</button>
+            <div id="langMenu">
+                <div onclick="setLang('en')">English</div>
+                <div onclick="setLang('ar')">العربية</div>
+                <div onclick="setLang('fr')">Français</div>
+                <div onclick="setLang('es')">Español</div>
+            </div>
+            <h4 id="txt-app-title" style="margin:0; color:#3182ce;">Pigeon Speed</h4>
+            <button class="btn-calc" onclick="generateRankings()" id="txt-btn-calc">Calculate</button>
         </div>
-        <input type="text" id="searchInput" onkeyup="filterNames()" placeholder="Search racer name...">
+        <input type="text" id="searchInput" onkeyup="filterNames()" placeholder="Search...">
     </div>
 
     <div class="content">
-        <div class="card" style="background:#f8fafc;">
-            <b>1. Upload PDF & Release Time:</b>
+        <div class="card">
             <input type="file" id="pdfInput" accept=".pdf">
-            <input type="text" id="lacheTime" placeholder="Release Time 07:00:00" maxlength="8" oninput="formatTime(this)" inputmode="numeric">
-            <button onclick="addManualEntry()" style="background:#3182ce; color:white; border:none; padding:10px; border-radius:8px; width:100%; cursor:pointer;">+ Add Manually</button>
+            <input type="text" id="lacheTime" placeholder="Release Time (07:00:00)" maxlength="8" oninput="formatTime(this)">
+            <button onclick="addManualEntry()" style="width:100%; background:#3182ce; color:white; border:none; padding:10px; border-radius:8px;" id="txt-add-manual">+ Add Manual</button>
         </div>
 
-        <div id="inputSection">
-            <div id="inputCardsContainer"></div>
-        </div>
+        <div id="inputCardsContainer"></div>
 
         <div id="rankingSection" style="display:none;">
-            <div id="capture-area" style="background:#fff; border-radius:8px; overflow:hidden; border: 1px solid #ddd;">
-                <div style="background:#3182ce; color:white; padding:12px; text-align:center;"><b>LEADERBOARD</b></div>
+            <div id="capture-area" style="background:#fff; border:1px solid #ddd; border-radius:8px; overflow:hidden;">
+                <div style="background:#3182ce; color:white; padding:10px; text-align:center;"><b id="txt-rank-title">LEADERBOARD</b></div>
                 <div id="rankingList"></div>
-                <div class="watermark">EL MAKKAOUY</div>
+                <div class="copyright">BY ELMAKKAOUY</div>
             </div>
-            <button class="btn-save" onclick="saveAsImage()">Save as Image 📸</button>
+            <button onclick="saveAsImage()" style="width:100%; padding:15px; background:#4a5568; color:white; border:none; border-radius:8px; margin-top:10px; font-weight:bold;" id="txt-save">Save Image 📸</button>
         </div>
     </div>
 </div>
@@ -82,8 +83,30 @@
 
 <script>
     let basePigeons = [];
+    let currentLang = 'en';
     const pdfjsLib = window['pdfjs-dist/build/pdf'];
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+    const i18n = {
+        en: { title: "Pigeon Speed", calc: "Calculate", search: "Search...", manual: "+ Add Manual", rank: "LEADERBOARD", save: "Save Image 📸", arrival: "Arrival", addTime: "+ Add Another Time" },
+        ar: { title: "سرعة الحمام", calc: "حساب", search: "بحث...", manual: "+ إضافة يدوي", rank: "نتائج السباق", save: "حفظ كصورة 📸", arrival: "وصول", addTime: "+ إضافة توقيت آخر" },
+        fr: { title: "Vitesse Pigeon", calc: "Calculer", search: "Chercher...", manual: "+ Ajouter Manuel", rank: "CLASSEMENT", save: "Enregistrer 📸", arrival: "Arrivée", addTime: "+ Ajouter Temps" },
+        es: { title: "Velocidad Paloma", calc: "Calcular", search: "Buscar...", manual: "+ Añadir Manual", rank: "CLASIFICACIÓN", save: "Guardar 📸", arrival: "Llegada", addTime: "+ Añadir Tiempo" }
+    };
+
+    function toggleLang() { const m = document.getElementById('langMenu'); m.style.display = m.style.display==='block'?'none':'block'; }
+    
+    function setLang(l) {
+        currentLang = l;
+        document.getElementById('txt-app-title').innerText = i18n[l].title;
+        document.getElementById('txt-btn-calc').innerText = i18n[l].calc;
+        document.getElementById('searchInput').placeholder = i18n[l].search;
+        document.getElementById('txt-add-manual').innerText = i18n[l].manual;
+        document.getElementById('txt-rank-title').innerText = i18n[l].rank;
+        document.getElementById('txt-save').innerText = i18n[l].save;
+        document.getElementById('app-root').dir = l === 'ar' ? 'rtl' : 'ltr';
+        toggleLang(); renderInputCards();
+    }
 
     function formatTime(t) {
         let v = t.value.replace(/\D/g, '');
@@ -92,7 +115,7 @@
         t.value = v;
     }
 
-    document.getElementById('pdfInput').addEventListener('change', async (e) => {
+    document.getElementById('pdfInput').onchange = async (e) => {
         const file = e.target.files[0];
         const reader = new FileReader();
         reader.onload = async function() {
@@ -114,74 +137,64 @@
                     }
                 });
             }
-            basePigeons = extracted;
-            renderInputCards();
+            basePigeons = extracted; renderInputCards();
         };
         reader.readAsArrayBuffer(file);
-    });
+    };
 
-    function addManualEntry() {
-        basePigeons.unshift({ name: "", dist: 0, manual: true });
-        renderInputCards();
-    }
+    function addManualEntry() { basePigeons.unshift({ name: "", dist: 0, manual: true }); renderInputCards(); }
 
     function renderInputCards() {
         const container = document.getElementById('inputCardsContainer');
         container.innerHTML = "";
         basePigeons.forEach((p, i) => {
             const card = document.createElement('div');
-            card.className = "card";
-            card.setAttribute('data-name', p.name);
-            let head = p.manual ? `<div style="display:flex; gap:5px;"><input type="text" placeholder="Name" onchange="basePigeons[${i}].name=this.value; this.parentElement.parentElement.setAttribute('data-name', this.value)" style="flex:2;"><input type="number" placeholder="Km" onchange="basePigeons[${i}].dist=parseFloat(this.value)" style="flex:1;"></div>` : `<div style="display:flex; justify-content:space-between;"><b>${p.name}</b><span>${p.dist.toFixed(3)} Km</span></div>`;
-            card.innerHTML = head + `<div style="display:flex; gap:5px; margin-top:8px;"><input type="text" maxlength="8" oninput="formatTime(this)" inputmode="numeric" placeholder="Arrival 00:00:00" class="t-inp-${i}" style="flex:1;"></div>`;
+            card.className = "card"; card.setAttribute('data-name', p.name);
+            let head = p.manual ? `<div style="display:flex; gap:5px;"><input type="text" placeholder="Name" onchange="basePigeons[${i}].name=this.value" style="flex:2;"><input type="number" placeholder="Km" onchange="basePigeons[${i}].dist=parseFloat(this.value)" style="flex:1;"></div>` : `<b>${p.name} - ${p.dist} Km</b>`;
+            card.innerHTML = head + `<div id="times-${i}"><div style="display:flex; gap:5px; margin-top:5px;"><input type="text" maxlength="8" oninput="formatTime(this)" class="t-inp-${i}" placeholder="00:00:00" style="flex:1;"><button onclick="this.parentElement.remove()" class="delete-btn">×</button></div></div><button class="btn-add-time" onclick="addTimeInput(${i})">${i18n[currentLang].addTime}</button>`;
             container.appendChild(card);
         });
     }
 
+    function addTimeInput(idx) {
+        const div = document.createElement('div'); div.style.cssText = "display:flex; gap:5px; margin-top:5px;";
+        div.innerHTML = `<input type="text" maxlength="8" oninput="formatTime(this)" class="t-inp-${idx}" placeholder="00:00:00" style="flex:1;"><button onclick="this.parentElement.remove()" class="delete-btn">×</button>`;
+        document.getElementById(`times-${idx}`).appendChild(div);
+    }
+
     function filterNames() {
         let val = document.getElementById('searchInput').value.toLowerCase();
-        document.querySelectorAll('.card[data-name]').forEach(c => {
+        document.querySelectorAll('.card').forEach(c => {
             c.style.display = c.getAttribute('data-name').toLowerCase().includes(val) ? "block" : "none";
         });
     }
 
     function generateRankings() {
-        let results = [];
-        const lache = document.getElementById('lacheTime').value;
-        if(lache.length < 5) return alert("Please enter Release Time");
-        
+        let results = []; const lache = document.getElementById('lacheTime').value;
+        if(lache.length < 5) return alert("Enter Release Time");
         basePigeons.forEach((p, i) => {
             document.querySelectorAll(`.t-inp-${i}`).forEach(inp => {
                 if(inp.value.length >= 5 && p.name && p.dist > 0) {
-                    let d1 = new Date("2026-01-01 " + lache);
-                    let d2 = new Date("2026-01-01 " + inp.value);
-                    let diff = (d2 - d1) / 60000;
-                    if(diff <= 0) diff += 1440;
+                    let d1 = new Date("2026-01-01 " + lache), d2 = new Date("2026-01-01 " + inp.value);
+                    let diff = (d2 - d1) / 60000; if(diff <= 0) diff += 1440;
                     results.push({ name: p.name, dist: p.dist, time: inp.value, speed: (p.dist * 1000) / diff });
                 }
             });
         });
         results.sort((a,b) => b.speed - a.speed);
-        document.getElementById('rankingList').innerHTML = results.map((r, i) => `<div class="result-item ${i==0?'top-1':''}"><div><b>${i+1}. ${r.name}</b><br><small>${r.dist.toFixed(3)} Km | ${r.time}</small></div><b>${r.speed.toFixed(3)} m/m</b></div>`).join('');
+        document.getElementById('rankingList').innerHTML = results.map((r, i) => `<div class="result-item"><div><b>${i+1}. ${r.name}</b><br><small>${r.dist} Km | ${r.time}</small></div><b>${r.speed.toFixed(3)}</b></div>`).join('');
         document.getElementById('rankingSection').style.display = 'block';
         document.getElementById('rankingSection').scrollIntoView({ behavior: 'smooth' });
     }
 
     function saveAsImage() {
-        const area = document.getElementById('capture-area');
-        html2canvas(area, { scale: 2 }).then(canvas => {
-            const link = document.createElement('a');
-            link.download = 'Pigeon_Results_EL_MAKKAOUY.png';
-            link.href = canvas.toDataURL();
-            link.click();
+        html2canvas(document.getElementById('capture-area')).then(canvas => {
+            const link = document.createElement('a'); link.download = 'Result_BY_ELMAKKAOUY.png';
+            link.href = canvas.toDataURL(); link.click();
         });
     }
 
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js', { scope: './' });
-        });
-    }
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js'); }
 </script>
 </body>
 </html>
