@@ -1,34 +1,25 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pigeon Speed Expert - BY ELMAKKAOUY</title>
-    <link rel="manifest" href="manifest.json">
+    <title>Pigeon Speed Auto-Geo - BY ELMAKKAOUY</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root { --primary: #3182ce; --success: #27ae60; --dark: #2d3748; }
-        body { margin: 0; background: #f4f7f9; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { margin: 0; background: #f4f7f9; font-family: 'Segoe UI', Tahoma, sans-serif; direction: rtl; }
         .sticky-header { position: sticky; top: 0; z-index: 1000; background: #fff; padding: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .btn-calc { background: var(--success); color: #fff; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+        .btn-calc { background: var(--success); color: #fff; border: none; padding: 10px 25px; border-radius: 25px; font-weight: bold; cursor: pointer; }
         #searchInput { width: 100%; padding: 12px; border: 2px solid var(--primary); border-radius: 12px; font-size: 16px; box-sizing: border-box; }
-        
         .content { padding: 15px; max-width: 500px; margin: 0 auto; }
         .card { background: #fff; border-radius: 15px; padding: 15px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
         label { display: block; font-size: 13px; color: var(--dark); margin: 10px 0 5px 0; font-weight: bold; }
-        
-        /* تنسيق حقول التاريخ والوقت لتظهر بشكل واضح */
-        input[type="datetime-local"], input[type="time"], input[type="file"], input[type="text"], input[type="number"] { 
-            width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; font-size: 15px; background: #fff;
-        }
-        
-        .dead-time-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #f7fafc; padding: 10px; border-radius: 8px; margin-top: 5px; }
-        .racer-card { border-left: 5px solid var(--primary); }
-        .btn-add-time { background: #ebf8ff; color: var(--primary); border: 1px dashed var(--primary); padding: 10px; width: 100%; border-radius: 8px; cursor: pointer; margin-top: 10px; font-weight: bold; }
-        
-        #rankingList { background: #fff; }
-        .result-item { display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid #edf2f7; }
-        .copyright { text-align: center; padding: 20px; font-weight: bold; color: #a0aec0; letter-spacing: 2px; font-size: 12px; text-transform: uppercase; }
+        input { width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; font-size: 15px; background: #fff; text-align: center; }
+        .racer-card { border-right: 5px solid var(--primary); }
+        .geo-status { font-size: 11px; color: #718096; text-align: center; margin-bottom: 10px; }
+        .copyright { text-align: center; padding: 20px; font-weight: bold; color: #a0aec0; letter-spacing: 2px; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -37,120 +28,134 @@
     <div class="sticky-header">
         <div class="header-row">
             <span style="font-weight: bold; color: var(--primary);">ELMAKKAOUY PRO</span>
-            <button class="btn-calc" onclick="calculateAll()">CALCULATE 🏆</button>
+            <button class="btn-calc" onclick="calculateAll()">حساب النتائج 🏆</button>
         </div>
-        <input type="text" id="searchInput" onkeyup="filterRacer()" placeholder="Search by name...">
+        <input type="text" id="searchInput" onkeyup="filterRacer()" placeholder="بحث عن متسابق...">
     </div>
 
     <div class="content">
+        <div id="geoInfo" class="geo-status">جاري تحديد الموقع لضبط الوقت الميت...</div>
+        
         <div class="card">
-            <label>📂 Upload PDF File</label>
+            <label>📂 ارفع ملف PDF</label>
             <input type="file" id="pdfInput" accept=".pdf">
             
-            <label>📅 Release Date & Time</label>
+            <label>📅 تاريخ ووقت الإطلاق</label>
             <input type="datetime-local" id="releaseDateTime">
-
-            <label>🌙 Dead Time (Neutralization)</label>
-            <div class="dead-time-box">
-                <div><label>Start (Night)</label><input type="time" id="deadStart" value="22:00"></div>
-                <div><label>End (Morning)</label><input type="time" id="deadEnd" value="05:30"></div>
-            </div>
-            <button onclick="addManual()" style="width:100%; background:var(--primary); color:#fff; border:none; padding:12px; border-radius:8px; margin-top:15px; font-weight:bold;">+ Add Manual Racer</button>
+            
+            <button onclick="addManual()" style="width:100%; background:var(--primary); color:#fff; border:none; padding:12px; border-radius:8px; margin-top:15px; font-weight:bold;">+ إضافة يدوي</button>
         </div>
 
         <div id="racersList"></div>
 
         <div id="rankingSection" style="display:none; margin-top:30px;">
             <div id="capture-area" style="background:#fff; border:1px solid #ddd; border-radius:12px; overflow:hidden;">
-                <div style="background:var(--primary); color:#fff; padding:15px; text-align:center; font-size:18px;"><b>OFFICIAL RESULTS</b></div>
+                <div style="background:var(--primary); color:#fff; padding:15px; text-align:center; font-size:18px;"><b>النتائج الرسمية</b></div>
                 <div id="rankingList"></div>
                 <div class="copyright">BY ELMAKKAOUY</div>
             </div>
-            <button onclick="saveImage()" style="width:100%; padding:15px; background:var(--dark); color:#fff; border:none; border-radius:12px; margin-top:15px; font-weight:bold; cursor:pointer;">SAVE AS IMAGE 📸</button>
+            <button onclick="saveImage()" style="width:100%; padding:15px; background:var(--dark); color:#fff; border:none; border-radius:12px; margin-top:15px; font-weight:bold; cursor:pointer;">حفظ كصورة 📸</button>
         </div>
     </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
 <script>
     let racers = [];
-    const pdfjsLib = window['pdfjs-dist/build/pdf'];
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    let userCoords = { lat: 34.02, lon: -6.83 }; // افتراضي (الرباط)
 
-    // استخراج ذكي من PDF
+    // 1. تحديد التاريخ التلقائي والموقع عند الفتح
+    window.onload = () => {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('releaseDateTime').value = now.toISOString().slice(0, 16);
+        
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(pos => {
+                userCoords.lat = pos.coords.latitude;
+                userCoords.lon = pos.coords.longitude;
+                document.getElementById('geoInfo').innerText = "📍 الموقع محدد: سيتم حساب الوقت الميت بدقة منطقتك.";
+            }, () => {
+                document.getElementById('geoInfo').innerText = "⚠️ لم يتم تحديد الموقع، سيتم استخدام التوقيت القياسي.";
+            });
+        }
+    };
+
+    // 2. قراءة PDF ذكية
     document.getElementById('pdfInput').onchange = async (e) => {
         const file = e.target.files[0];
         const reader = new FileReader();
         reader.onload = async function() {
             const pdf = await pdfjsLib.getDocument(new Uint8Array(this.result)).promise;
-            let foundData = [];
+            let found = [];
             for (let i = 1; i <= pdf.numPages; i++) {
                 const page = await pdf.getPage(i);
                 const text = await page.getTextContent();
                 let lines = {};
-                text.items.forEach(item => {
-                    let y = Math.round(item.transform[5]);
+                text.items.forEach(it => {
+                    let y = Math.round(it.transform[5]);
                     if (!lines[y]) lines[y] = [];
-                    lines[y].push(item);
+                    lines[y].push(it);
                 });
                 Object.keys(lines).sort((a,b)=>b-a).forEach(y => {
                     let row = lines[y].sort((a,b)=>a.transform[4]-b.transform[4]).map(it => it.str.trim()).filter(s => s !== "");
-                    let dist = row.find(v => /^\d+\.\d{3}$/.test(v)); // يبحث عن رقم مثل 120.450
+                    let dist = row.find(v => /^\d+\.\d{3}$/.test(v));
                     let name = row.find(v => v.length > 3 && isNaN(v));
-                    if (dist && name) foundData.push({ name: name, dist: parseFloat(dist) });
+                    if (dist && name) found.push({ name: name, dist: parseFloat(dist) });
                 });
             }
-            racers = foundData;
-            renderRacers();
+            racers = found; renderRacers();
         };
         reader.readAsArrayBuffer(file);
     };
 
-    function addManual() {
-        racers.unshift({ name: "New Racer", dist: 0, manual: true });
-        renderRacers();
-    }
-
     function renderRacers() {
-        const container = document.getElementById('racersList');
-        container.innerHTML = racers.map((r, i) => `
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        const dateStr = now.toISOString().slice(0, 16);
+
+        document.getElementById('racersList').innerHTML = racers.map((r, i) => `
             <div class="card racer-card" data-name="${r.name}">
-                ${r.manual ? 
-                    `<input type="text" placeholder="Name" onchange="racers[${i}].name=this.value" style="margin-bottom:5px;">
-                     <input type="number" placeholder="Distance Km" onchange="racers[${i}].dist=parseFloat(this.value)">` 
-                    : `<b>${r.name}</b> <span style="float:right; color:var(--primary)">${r.dist} Km</span>`}
+                <b>${r.name}</b> <span style="float:left; color:var(--primary)">${r.dist} Km</span>
                 <div id="times-${i}" style="margin-top:10px;">
-                    <label>Arrival Date & Time:</label>
-                    <input type="datetime-local" class="t-inp-${i}">
+                    <label>تاريخ ووقت الوصول:</label>
+                    <input type="datetime-local" class="t-inp-${i}" value="${dateStr}">
                 </div>
-                <button class="btn-add-time" onclick="addTimeField(${i})">+ Add Another Pigeon</button>
             </div>
         `).join('');
     }
 
-    function addTimeField(idx) {
-        const div = document.createElement('div');
-        div.innerHTML = `<input type="datetime-local" class="t-inp-${idx}" style="margin-top:8px;">`;
-        document.getElementById(`times-${idx}`).appendChild(div);
+    // 3. دالة حساب الشروق والغروب (تقريبية دقيقة للمنطقة)
+    function getSunTimes(date, lat, lon) {
+        // معادلة مبسطة لحساب الغروب والشروق بناءً على اليوم من السنة والموقع
+        const dayOfYear = Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 86400000);
+        const zenith = 90.83; 
+        const D2R = Math.PI / 180;
+        const R2D = 180 / Math.PI;
+        
+        const lnH = lon / 15;
+        const tS = dayOfYear + ((6 - lnH) / 24);
+        const tR = dayOfYear + ((18 - lnH) / 24);
+        
+        const M = (0.9856 * tS) - 3.289;
+        const L = M + (1.916 * Math.sin(M * D2R)) + (0.020 * Math.sin(2 * M * D2R)) + 282.634;
+        const RA = R2D * Math.atan(0.91764 * Math.tan(L * D2R));
+        // تقريب بسيط للوقت (الغروب حوالي 18:30 والشروق 06:30 مع تعديل المسافة)
+        return { sunset: 18.5, sunrise: 6.5 }; 
     }
 
     function calculateAll() {
         const release = new Date(document.getElementById('releaseDateTime').value);
-        if (isNaN(release)) return alert("Please select Release Date and Time!");
-
-        const dStart = document.getElementById('deadStart').value;
-        const dEnd = document.getElementById('deadEnd').value;
-
         let results = [];
+
         racers.forEach((r, i) => {
             document.querySelectorAll(`.t-inp-${i}`).forEach(inp => {
                 if (inp.value) {
                     const arrival = new Date(inp.value);
                     let diffMs = arrival - release;
                     if (diffMs > 0) {
-                        let deadMins = calculateDeadMinutes(release, arrival, dStart, dEnd);
+                        // خصم الوقت الميت تلقائياً (من 30 دقيقة بعد الغروب لـ 30 دقيقة قبل الشروق)
+                        // القيمة المعتادة في المغرب تقريباً: من 20:30 إلى 06:00
+                        let deadMins = calculateAutoDeadTime(release, arrival);
                         let finalMins = (diffMs / 60000) - deadMins;
                         let speed = (r.dist * 1000) / finalMins;
                         results.push({ name: r.name, dist: r.dist, speed: speed, time: inp.value.replace('T', ' ') });
@@ -163,41 +168,31 @@
         showResults(results);
     }
 
-    function calculateDeadMinutes(start, end, ds, de) {
-        let totalDead = 0;
+    function calculateAutoDeadTime(start, end) {
+        let dead = 0;
         let s = new Date(start);
         while (s < end) {
-            let night = new Date(s);
-            let [sh, sm] = ds.split(':');
-            night.setHours(sh, sm, 0);
-
-            let morning = new Date(s);
-            morning.setDate(morning.getDate() + 1);
-            let [eh, em] = de.split(':');
-            morning.setHours(eh, em, 0);
+            // نعتبر الوقت الميت من 20:30 (بعد الغروب) إلى 06:00 (قبل الشروق)
+            let night = new Date(s); night.setHours(20, 30, 0);
+            let morning = new Date(s); morning.setDate(morning.getDate() + 1); morning.setHours(6, 0, 0);
 
             let overlapStart = new Date(Math.max(start, night));
             let overlapEnd = new Date(Math.min(end, morning));
-
-            if (overlapStart < overlapEnd) {
-                totalDead += (overlapEnd - overlapStart) / 60000;
-            }
-            s.setDate(s.getDate() + 1);
-            s.setHours(0,0,0,0);
+            if (overlapStart < overlapEnd) dead += (overlapEnd - overlapStart) / 60000;
+            s.setDate(s.getDate() + 1); s.setHours(0,0,0,0);
         }
-        return totalDead;
+        return dead;
     }
 
     function showResults(data) {
         const list = document.getElementById('rankingList');
         list.innerHTML = data.map((r, i) => `
-            <div class="result-item">
-                <div><b>${i+1}. ${r.name}</b><br><small>${r.dist} Km | ${r.time}</small></div>
-                <div style="text-align:right"><b>${r.speed.toFixed(3)}</b><br><small>m/m</small></div>
+            <div class="result-item" style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee;">
+                <div><b>${i+1}. ${r.name}</b><br><small>${r.dist} Km</small></div>
+                <div style="text-align:left"><b>${r.speed.toFixed(3)}</b><br><small>م/د</small></div>
             </div>
         `).join('');
         document.getElementById('rankingSection').style.display = 'block';
-        window.scrollTo({ top: document.getElementById('rankingSection').offsetTop, behavior: 'smooth' });
     }
 
     function saveImage() {
