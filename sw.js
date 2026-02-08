@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pigeon-v3';
+const CACHE_NAME = 'pigeon-cache-v1';
 const ASSETS = [
   './',
   './index.html',
@@ -7,16 +7,21 @@ const ASSETS = [
   'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'
 ];
 
-self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(ASSETS)));
+// عند التثبيت: تخزين الملفات الأساسية
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS);
+    })
+  );
+  self.skipWaiting();
 });
 
-self.addEventListener('activate', (e) => {
-  e.waitUntil(caches.keys().then((keys) => {
-    return Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)));
-  }));
-});
-
-self.addEventListener('fetch', (e) => {
-  e.respondWith(caches.match(e.request).then((res) => res || fetch(e.request)));
+// عند التشغيل: جلب الملفات من الكاش حتى لو لم يوجد إنترنت
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request);
+    })
+  );
 });
