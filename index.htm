@@ -3,316 +3,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pigeon Speed Global - BY ELMAKKAOUY</title>
-    
+    <title>Pigeon Speed Expert - BY ELMAKKAOUY</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
     <style>
-        :root {
-            --primary: #2563eb;
-            --success: #16a34a;
-            --danger: #dc2626;
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --text: #1e293b;
-        }
-
-        body {
-            margin: 0; background-color: var(--bg); color: var(--text);
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        /* Modern Header */
-        .app-header {
-            position: sticky; top: 0; z-index: 1000;
-            background: var(--card); padding: 15px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            border-bottom: 3px solid var(--primary);
-        }
-
-        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .brand { font-weight: 800; color: var(--primary); font-size: 1.2rem; letter-spacing: 0.5px; }
-
-        .lang-selector {
-            padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0;
-            background: #f1f5f9; font-size: 0.85rem; font-weight: 600; cursor: pointer;
-        }
-
-        .btn-calc {
-            background: var(--success); color: white; border: none;
-            padding: 10px 25px; border-radius: 50px; font-weight: bold;
-            cursor: pointer; box-shadow: 0 4px 6px rgba(22, 163, 74, 0.2);
-        }
-
-        #searchBox {
-            width: 100%; padding: 12px 18px; border: 2px solid #e2e8f0;
-            border-radius: 12px; outline: none; box-sizing: border-box; font-size: 16px;
-        }
-
-        .container { max-width: 550px; margin: 0 auto; padding: 20px 15px; }
-
-        .card {
-            background: var(--card); border-radius: 20px; padding: 20px;
-            margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-            border: 1px solid #f1f5f9;
-        }
-
-        .input-label { display: block; font-weight: 700; font-size: 0.9rem; margin-bottom: 8px; color: #64748b; }
-
-        input[type="datetime-local"], input[type="file"], input[type="text"], input[type="number"] {
-            width: 100%; padding: 12px; border: 1px solid #cbd5e0;
-            border-radius: 10px; margin-bottom: 12px; box-sizing: border-box; font-size: 15px;
-        }
-
-        /* Racer Items */
-        .racer-card { border-left: 6px solid var(--primary); position: relative; }
-        .racer-header-row { display: flex; gap: 10px; margin-bottom: 15px; }
+        :root { --primary: #2563eb; --success: #16a34a; --danger: #dc2626; --bg: #f1f5f9; --card: #ffffff; }
+        body { margin: 0; background: var(--bg); font-family: system-ui, -apple-system, sans-serif; color: #1e293b; }
+        .app-header { position: sticky; top: 0; z-index: 1000; background: var(--card); padding: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-bottom: 3px solid var(--primary); }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .brand { font-weight: 900; color: var(--primary); font-size: 1.1rem; }
+        .btn-calc { background: var(--success); color: white; border: none; padding: 10px 20px; border-radius: 50px; font-weight: bold; cursor: pointer; }
+        .container { max-width: 500px; margin: 0 auto; padding: 15px; }
+        .card { background: var(--card); border-radius: 15px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); position: relative; }
+        .input-label { display: block; font-weight: bold; font-size: 0.85rem; margin-bottom: 5px; color: #64748b; }
         
-        .pigeon-row { 
-            display: flex; align-items: center; gap: 10px; margin-bottom: 10px; 
-            background: #f8fafc; padding: 10px; border-radius: 12px;
-        }
-
-        .btn-add-p {
-            width: 100%; background: #eff6ff; color: var(--primary);
-            border: 2px dashed var(--primary); padding: 12px;
-            border-radius: 12px; font-weight: 700; cursor: pointer; margin-top: 5px;
-        }
-
-        .btn-del-racer { position: absolute; top: 15px; right: 15px; color: var(--danger); cursor: pointer; font-weight: bold; }
-        .btn-del-time { color: var(--danger); border: none; background: none; font-size: 1.5rem; cursor: pointer; }
-
-        /* Results Area */
-        #result-area { display: none; margin-top: 30px; }
-        .res-table { background: white; border-radius: 20px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        .res-head { background: var(--primary); color: white; padding: 18px; text-align: center; font-weight: 800; font-size: 1.2rem; }
-        .res-row { display: flex; justify-content: space-between; padding: 18px; border-bottom: 1px solid #f1f5f9; align-items: center; }
+        /* تحسين مربعات الإدخال */
+        input[type="text"], input[type="number"], input[type="date"] { width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 10px; box-sizing: border-box; font-size: 16px; margin-bottom: 10px; }
         
-        .copyright {
-            text-align: center; padding: 25px; color: #cbd5e0;
-            font-weight: 900; font-size: 0.8rem; letter-spacing: 5px; text-transform: uppercase;
-        }
+        /* تصميم مربعات الوقت اليدوي */
+        .time-picker-manual { display: flex; align-items: center; gap: 5px; background: #f8fafc; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0; }
+        .time-field { width: 60px !important; text-align: center; padding: 8px !important; margin: 0 !important; font-weight: bold; border-color: var(--primary) !important; }
+        .time-sep { font-weight: bold; font-size: 1.2rem; }
 
-        .btn-save {
-            width: 100%; background: #1e293b; color: white; padding: 18px;
-            border: none; border-radius: 15px; font-weight: 800; margin-top: 15px; cursor: pointer; font-size: 1rem;
-        }
+        .racer-card { border-left: 5px solid var(--primary); }
+        .btn-add-p { width: 100%; background: #eff6ff; color: var(--primary); border: 2px dashed var(--primary); padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+        .delete-btn { position: absolute; top: 10px; right: 10px; color: var(--danger); font-weight: bold; cursor: pointer; font-size: 1.2rem; }
+        
+        #result-area { display: none; margin-top: 20px; }
+        .res-table { background: white; border-radius: 15px; overflow: hidden; border: 1px solid #e2e8f0; }
+        .res-head { background: var(--primary); color: white; padding: 15px; text-align: center; font-weight: bold; }
+        .res-row { display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid #f1f5f9; align-items: center; }
+        .copyright { text-align: center; padding: 20px; color: #cbd5e0; font-weight: 900; font-size: 0.75rem; letter-spacing: 4px; }
+        .btn-save { width: 100%; background: #1e293b; color: white; padding: 15px; border: none; border-radius: 12px; font-weight: bold; margin-top: 10px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <header class="app-header">
-        <div class="header-top">
-            <div class="brand">ELMAKKAOUY PRO</div>
-            <select class="lang-selector" id="langSelect" onchange="changeLanguage(this.value)">
-                <option value="en">English</option>
-                <option value="ar">العربية</option>
-                <option value="fr">Français</option>
-            </select>
-            <button class="btn-calc" id="ui-calc" onclick="calculateResults()">Calculate 🏆</button>
+<header class="app-header">
+    <div class="header-top">
+        <div class="brand">ELMAKKAOUY PRO</div>
+        <select onchange="updateLang(this.value)" style="padding:5px; border-radius:5px;">
+            <option value="en">EN</option>
+            <option value="ar">AR</option>
+        </select>
+        <button class="btn-calc" onclick="processCalculations()" id="ui-calc">Calculate 🏆</button>
+    </div>
+    <input type="text" id="searchBox" onkeyup="filter()" placeholder="Search...">
+</header>
+
+<main class="container">
+    <div class="card">
+        <label class="input-label" id="ui-pdf">📄 PDF Results</label>
+        <input type="file" id="pdfFile" accept=".pdf">
+        
+        <label class="input-label" id="ui-rel">🏁 Release Date & Time</label>
+        <input type="date" id="relDate">
+        <div class="time-picker-manual">
+            <input type="number" class="time-field" id="relH" placeholder="HH" value="00">
+            <span class="time-sep">:</span>
+            <input type="number" class="time-field" id="relM" placeholder="MM" value="00">
+            <span class="time-sep">:</span>
+            <input type="number" class="time-field" id="relS" placeholder="SS" value="00">
         </div>
-        <input type="text" id="searchBox" onkeyup="filterRacers()" placeholder="Search racers...">
-    </header>
+        
+        <button class="btn-add-p" style="background:var(--primary); color:white; border:none; margin-top:10px;" onclick="addRacer()">+ Add Manual Racer</button>
+    </div>
 
-    <main class="container">
-        <div class="card">
-            <label class="input-label" id="ui-pdf-label">📄 Upload PDF Results</label>
-            <input type="file" id="pdfInput" accept=".pdf">
-            
-            <label class="input-label" id="ui-release-label">🏁 Race Release Time</label>
-            <input type="datetime-local" id="releaseDate" step="1">
-            
-            <button class="btn-add-p" style="background: var(--primary); color: white; border: none; margin-top: 10px;" id="ui-manual" onclick="addManualRacer()">+ Add Manual Racer</button>
+    <div id="list"></div>
+
+    <div id="result-area">
+        <div id="capture" class="res-table">
+            <div class="res-head" id="ui-res-title">Rankings</div>
+            <div id="rankings"></div>
+            <div class="copyright">BY ELMAKKAOUY</div>
         </div>
+        <button class="btn-save" onclick="save()">Save as Image 📸</button>
+    </div>
+</main>
 
-        <div id="racersList"></div>
+<script>
+    let racers = [];
+    const t = {
+        en: { calc: "Calculate 🏆", pdf: "📄 PDF Results", rel: "🏁 Release Date & Time", res: "Rankings", add: "+ Add Pigeon", name: "Name", dist: "Dist (Km)", dir: "ltr" },
+        ar: { calc: "حساب 🏆", pdf: "📄 نتائج PDF", rel: "🏁 تاريخ ووقت الإطلاق", res: "النتائج", add: "+ إضافة حمامة", name: "الاسم", dist: "المسافة", dir: "rtl" }
+    };
 
-        <div id="result-area">
-            <div id="capture-zone" class="res-table">
-                <div class="res-head" id="ui-res-title">Official Rankings</div>
-                <div id="rankingList"></div>
-                <div class="copyright">BY ELMAKKAOUY</div>
-            </div>
-            <button class="btn-save" id="ui-save" onclick="saveAsImage()">Save Result Image 📸</button>
-        </div>
-    </main>
+    function updateLang(l) {
+        document.getElementById('html-tag').dir = t[l].dir;
+        document.getElementById('ui-calc').innerText = t[l].calc;
+        document.getElementById('ui-pdf').innerText = t[l].pdf;
+        document.getElementById('ui-rel').innerText = t[l].rel;
+        document.getElementById('ui-res-title').innerText = t[l].res;
+        render();
+    }
 
-    <script>
-        let racers = [];
-        const langData = {
-            en: { calc: "Calculate 🏆", search: "Search racers...", pdf: "📄 Upload PDF Results", release: "🏁 Race Release Time", manual: "+ Add Manual Racer", res: "Official Rankings", save: "Save Result Image 📸", add: "+ Add Another Pigeon", mpm: "m/min", dir: "ltr", namePh: "Racer Name", distPh: "Distance (Km)" },
-            ar: { calc: "حساب 🏆", search: "بحث عن متسابق...", pdf: "📄 ارفع ملف النتائج", release: "🏁 وقت الإطلاق", manual: "+ إضافة متسابق يدوي", res: "النتائج الرسمية", save: "حفظ كصورة 📸", add: "+ حمامة أخرى", mpm: "متر/دقيقة", dir: "rtl", namePh: "اسم المتسابق", distPh: "المسافة (كم)" },
-            fr: { calc: "Calculer 🏆", search: "Rechercher...", pdf: "📄 Charger le PDF", release: "🏁 Heure du Lâcher", manual: "+ Ajouter Manuel", res: "Classement Officiel", save: "Enregistrer Image 📸", add: "+ Pigeon Supplémentaire", mpm: "m/min", dir: "ltr", namePh: "Nom", distPh: "Distance (Km)" }
-        };
+    window.onload = () => { document.getElementById('relDate').valueAsDate = new Date(); };
 
-        function changeLanguage(lang) {
-            const t = langData[lang];
-            document.getElementById('html-tag').dir = t.dir;
-            document.getElementById('html-tag').lang = lang;
-            document.getElementById('ui-calc').innerText = t.calc;
-            document.getElementById('searchBox').placeholder = t.search;
-            document.getElementById('ui-pdf-label').innerText = t.pdf;
-            document.getElementById('ui-release-label').innerText = t.release;
-            document.getElementById('ui-manual').innerText = t.manual;
-            document.getElementById('ui-res-title').innerText = t.res;
-            document.getElementById('ui-save').innerText = t.save;
-            renderRacerList();
-        }
-
-        function getZeroedNow() {
-            const d = new Date();
-            const date = d.toISOString().split('T')[0];
-            return `${date}T00:00:00`;
-        }
-
-        window.onload = () => {
-            document.getElementById('releaseDate').value = getZeroedNow();
-        };
-
-        // PDF Processing
-        const pdfjs = window['pdfjs-dist/build/pdf'];
-        pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-
-        document.getElementById('pdfInput').onchange = async (e) => {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onload = async function() {
-                const pdf = await pdfjs.getDocument(new Uint8Array(this.result)).promise;
-                let extracted = [];
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const content = await page.getTextContent();
-                    let lines = {};
-                    content.items.forEach(it => {
-                        let y = Math.round(it.transform[5]);
-                        if (!lines[y]) lines[y] = [];
-                        lines[y].push(it);
-                    });
-                    Object.keys(lines).sort((a,b)=>b-a).forEach(y => {
-                        let row = lines[y].sort((a,b)=>a.transform[4]-b.transform[4]).map(it => it.str.trim()).filter(s => s !== "");
-                        let dist = row.find(v => /^\d+\.\d{3}$/.test(v));
-                        let name = row.find(v => v.length > 3 && isNaN(v));
-                        if (dist && name) extracted.push({ name, dist: parseFloat(dist), isManual: false });
-                    });
-                }
-                racers = extracted;
-                renderRacerList();
-            };
-            reader.readAsArrayBuffer(file);
-        };
-
-        function addManualRacer() {
-            racers.unshift({ name: "", dist: 0, isManual: true, id: Date.now() });
-            renderRacerList();
-        }
-
-        function renderRacerList() {
-            const lang = document.getElementById('html-tag').lang || 'en';
-            const t = langData[lang];
-            const container = document.getElementById('racersList');
-            container.innerHTML = racers.map((r, i) => `
-                <div class="card racer-card" data-search="${r.name.toLowerCase()}">
-                    <span class="btn-del-racer" onclick="removeRacer(${i})">×</span>
-                    <div class="racer-header-row">
-                        ${r.isManual ? 
-                            `<input type="text" placeholder="${t.namePh}" oninput="racers[${i}].name=this.value" value="${r.name}">
-                             <input type="number" placeholder="${t.distPh}" oninput="racers[${i}].dist=parseFloat(this.value)" value="${r.dist || ''}">` 
-                            : `<b>${r.name}</b> <b style="color:var(--primary)">${r.dist} Km</b>`}
-                    </div>
-                    <div id="times-box-${i}">
-                        <div class="pigeon-row">
-                            <input type="datetime-local" class="time-in-${i}" value="${getZeroedNow()}" step="1">
-                        </div>
-                    </div>
-                    <button class="btn-add-p" onclick="addTimeRow(${i})">${t.add}</button>
-                </div>
-            `).join('');
-        }
-
-        function addTimeRow(i) {
-            const div = document.createElement('div');
-            div.className = 'pigeon-row';
-            div.innerHTML = `<input type="datetime-local" class="time-in-${i}" value="${getZeroedNow()}" step="1"><button class="btn-del-time" onclick="this.parentElement.remove()">×</button>`;
-            document.getElementById(`times-box-${i}`).appendChild(div);
-        }
-
-        function removeRacer(i) { racers.splice(i, 1); renderRacerList(); }
-
-        function calculateResults() {
-            const relInput = document.getElementById('releaseDate').value;
-            if (!relInput) return alert("Please set release time!");
-            const release = new Date(relInput);
-            let results = [];
-
-            racers.forEach((r, i) => {
-                if (!r.name || !r.dist) return;
-                document.querySelectorAll(`.time-in-${i}`).forEach(inp => {
-                    if (inp.value) {
-                        const arrival = new Date(inp.value);
-                        let diffSec = (arrival - release) / 1000;
-                        if (diffSec > 0) {
-                            diffSec -= getDeadTimeSec(release, arrival);
-                            let speed = (r.dist * 1000) / (diffSec / 60);
-                            results.push({ name: r.name, dist: r.dist, speed, time: inp.value.split('T')[1] });
-                        }
-                    }
+    // PDF Import
+    document.getElementById('pdfFile').onchange = async (e) => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = async function() {
+            const pdf = await pdfjsLib.getDocument(new Uint8Array(this.result)).promise;
+            let temp = [];
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const text = await page.getTextContent();
+                let lines = {};
+                text.items.forEach(it => { let y = Math.round(it.transform[5]); if(!lines[y]) lines[y]=[]; lines[y].push(it); });
+                Object.keys(lines).sort((a,b)=>b-a).forEach(y => {
+                    let row = lines[y].sort((a,b)=>a.transform[4]-b.transform[4]).map(it => it.str.trim()).filter(s => s !== "");
+                    let d = row.find(v => /^\d+\.\d{3}$/.test(v));
+                    let n = row.find(v => v.length > 3 && isNaN(v));
+                    if (d && n) temp.push({ name: n, dist: d, manual: false, pigeons: [{h:'00', m:'00', s:'00', date: document.getElementById('relDate').value}] });
                 });
-            });
-
-            results.sort((a, b) => b.speed - a.speed);
-            showRanking(results);
-        }
-
-        function getDeadTimeSec(start, end) {
-            let dead = 0;
-            let cur = new Date(start);
-            cur.setHours(0,0,0,0);
-            while (cur <= end) {
-                // Night Dead Time: 20:30:00 to 06:00:00
-                let nStart = new Date(cur); nStart.setHours(20, 30, 0);
-                let mEnd = new Date(cur); mEnd.setDate(mEnd.getDate() + 1); mEnd.setHours(6, 0, 0);
-                let oStart = new Date(Math.max(start, nStart));
-                let oEnd = new Date(Math.min(end, mEnd));
-                if (oStart < oEnd) dead += (oEnd - oStart) / 1000;
-                cur.setDate(cur.getDate() + 1);
             }
-            return dead;
-        }
+            racers = temp; render();
+        };
+        reader.readAsArrayBuffer(file);
+    };
 
-        function showRanking(data) {
-            const lang = document.getElementById('html-tag').lang || 'en';
-            const t = langData[lang];
-            const list = document.getElementById('rankingList');
-            list.innerHTML = data.map((r, i) => `
-                <div class="res-row">
-                    <div><b>${i+1}. ${r.name}</b><br><small>${r.dist} Km | ${r.time}</small></div>
-                    <div style="text-align:right">
-                        <b style="color:var(--success); font-size:1.3rem">${r.speed.toFixed(3)}</b><br>
-                        <small>${t.mpm}</small>
-                    </div>
+    function addRacer() {
+        racers.unshift({ name: "", dist: "", manual: true, pigeons: [{h:'00', m:'00', s:'00', date: document.getElementById('relDate').value}] });
+        render();
+    }
+
+    function render() {
+        const lang = document.getElementById('html-tag').lang || 'en';
+        const container = document.getElementById('list');
+        container.innerHTML = racers.map((r, i) => `
+            <div class="card racer-card">
+                <span class="delete-btn" onclick="racers.splice(${i},1);render()">×</span>
+                ${r.manual ? 
+                    `<input type="text" placeholder="${t[lang].name}" oninput="racers[${i}].name=this.value" value="${r.name}">
+                     <input type="number" placeholder="${t[lang].dist}" oninput="racers[${i}].dist=this.value" value="${r.dist}">` 
+                    : `<b>${r.name}</b> <span style="float:right;color:var(--primary)">${r.dist} Km</span>`}
+                
+                <div id="p-box-${i}">
+                    ${r.pigeons.map((p, pi) => `
+                        <div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px;">
+                            <input type="date" value="${p.date}" onchange="racers[${i}].pigeons[${pi}].date=this.value">
+                            <div class="time-picker-manual">
+                                <input type="number" class="time-field" value="${p.h}" oninput="racers[${i}].pigeons[${pi}].h=this.value"> :
+                                <input type="number" class="time-field" value="${p.m}" oninput="racers[${i}].pigeons[${pi}].m=this.value"> :
+                                <input type="number" class="time-field" value="${p.s}" oninput="racers[${i}].pigeons[${pi}].s=this.value">
+                            </div>
+                        </div>
+                    `).join('')}
                 </div>
-            `).join('');
-            document.getElementById('result-area').style.display = 'block';
-            window.scrollTo({ top: document.getElementById('result-area').offsetTop, behavior: 'smooth' });
-        }
+                <button class="btn-add-p" onclick="racers[${i}].pigeons.push({h:'00',m:'00',s:'00',date:document.getElementById('relDate').value});render()">${t[lang].add}</button>
+            </div>
+        `).join('');
+    }
 
-        function saveAsImage() {
-            html2canvas(document.getElementById('capture-zone'), { scale: 3 }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = 'PigeonResults_ELMAKKAOUY.png';
-                link.href = canvas.toDataURL();
-                link.click();
+    function processCalculations() {
+        const rd = document.getElementById('relDate').value;
+        const rh = document.getElementById('relH').value, rm = document.getElementById('relM').value, rs = document.getElementById('relS').value;
+        const release = new Date(`${rd}T${pad(rh)}:${pad(rm)}:${pad(rs)}`);
+        
+        let final = [];
+        racers.forEach(r => {
+            if(!r.name || !r.dist) return;
+            r.pigeons.forEach(p => {
+                const arrival = new Date(`${p.date}T${pad(p.h)}:${pad(p.m)}:${pad(p.s)}`);
+                let diff = (arrival - release) / 1000;
+                if(diff > 0) {
+                    diff -= getDeadTime(release, arrival);
+                    let speed = (parseFloat(r.dist) * 1000) / (diff / 60);
+                    final.push({ name: r.name, dist: r.dist, speed, time: `${pad(p.h)}:${pad(p.m)}:${pad(p.s)}` });
+                }
             });
-        }
+        });
+        final.sort((a,b) => b.speed - a.speed);
+        display(final);
+    }
 
-        function filterRacers() {
-            let q = document.getElementById('searchBox').value.toLowerCase();
-            document.querySelectorAll('.racer-card').forEach(c => {
-                c.style.display = c.dataset.search.includes(q) ? 'block' : 'none';
-            });
+    function getDeadTime(s, e) {
+        let d = 0, c = new Date(s); c.setHours(0,0,0,0);
+        while(c <= e) {
+            let n = new Date(c); n.setHours(20,30,0);
+            let m = new Date(c); m.setDate(m.getDate()+1); m.setHours(6,0,0);
+            let oS = new Date(Math.max(s, n)), oE = new Date(Math.min(e, m));
+            if(oS < oE) d += (oE - oS) / 1000;
+            c.setDate(c.getDate()+1);
         }
-    </script>
+        return d;
+    }
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function display(data) {
+        document.getElementById('rankings').innerHTML = data.map((r, i) => `
+            <div class="res-row">
+                <div><b>${i+1}. ${r.name}</b><br><small>${r.dist} Km | ${r.time}</small></div>
+                <div style="text-align:right"><b style="color:var(--success);font-size:1.2rem">${r.speed.toFixed(3)}</b></div>
+            </div>
+        `).join('');
+        document.getElementById('result-area').style.display = 'block';
+    }
+
+    function save() {
+        html2canvas(document.getElementById('capture'), {scale:3}).then(c => {
+            const a = document.createElement('a'); a.download='Results.png'; a.href=c.toDataURL(); a.click();
+        });
+    }
+
+    function filter() {
+        let q = document.getElementById('searchBox').value.toLowerCase();
+        render(); // Re-render or filter DOM directly
+    }
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js"></script>
 </body>
 </html>
