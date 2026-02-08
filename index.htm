@@ -14,15 +14,14 @@
         .btn-calc { background: var(--success); color: #fff; border: none; padding: 10px 25px; border-radius: 25px; font-weight: bold; cursor: pointer; }
         #searchInput { width: 100%; padding: 12px; border: 2px solid var(--primary); border-radius: 12px; font-size: 16px; box-sizing: border-box; }
         .content { padding: 15px; max-width: 500px; margin: 0 auto; }
-        .card { background: #fff; border-radius: 15px; padding: 15px; margin-bottom: 15px; border: 1px solid #e2e8f0; position: relative; }
+        .card { background: #fff; border-radius: 15px; padding: 15px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
         label { display: block; font-size: 13px; color: var(--dark); margin: 10px 0 5px 0; font-weight: bold; }
         
-        /* تفعيل الثواني في الحقول */
         input[type="datetime-local"] { width: 100%; padding: 12px; border: 1px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; font-size: 15px; text-align: center; step: 1; }
         
         .racer-card { border-right: 5px solid var(--primary); }
         .btn-add-pigeon { background: #ebf8ff; color: var(--primary); border: 1px dashed var(--primary); padding: 8px; width: 100%; border-radius: 8px; cursor: pointer; margin-top: 10px; font-size: 13px; font-weight: bold; }
-        .delete-time { color: #ef4444; border: none; background: none; font-size: 18px; cursor: pointer; padding: 0 10px; }
+        .delete-time { color: #ef4444; border: none; background: none; font-size: 20px; cursor: pointer; padding: 0 10px; }
         .copyright { text-align: center; padding: 20px; font-weight: bold; color: #a0aec0; letter-spacing: 2px; font-size: 12px; }
         .result-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; }
     </style>
@@ -35,29 +34,29 @@
             <span style="font-weight: bold; color: var(--primary);">ELMAKKAOUY PRO</span>
             <button class="btn-calc" onclick="calculateAll()">حساب النتائج 🏆</button>
         </div>
-        <input type="text" id="searchInput" onkeyup="filterRacer()" placeholder="بحث عن اسم المتسابق...">
+        <input type="text" id="searchInput" onkeyup="filterRacer()" placeholder="بحث عن متسابق...">
     </div>
 
     <div class="content">
         <div class="card">
-            <label>📂 ارفع ملف PDF النتائج</label>
+            <label>📂 ارفع ملف PDF</label>
             <input type="file" id="pdfInput" accept=".pdf" style="width: 100%;">
             
-            <label>📅 تاريخ ووقت الإطلاق (بالثواني)</label>
+            <label>📅 وقت الإطلاق (افتراضياً أصفار)</label>
             <input type="datetime-local" id="releaseDateTime" step="1">
             
-            <button onclick="addManual()" style="width:100%; background:var(--primary); color:#fff; border:none; padding:12px; border-radius:8px; margin-top:15px; font-weight:bold; cursor:pointer;">+ إضافة يدوي</button>
+            <button onclick="addManual()" style="width:100%; background:var(--primary); color:#fff; border:none; padding:12px; border-radius:8px; margin-top:15px; font-weight:bold;">+ إضافة يدوي</button>
         </div>
 
         <div id="racersList"></div>
 
         <div id="rankingSection" style="display:none; margin-top:30px;">
             <div id="capture-area" style="background:#fff; border:1px solid #ddd; border-radius:12px; overflow:hidden;">
-                <div style="background:var(--primary); color:#fff; padding:15px; text-align:center;"><b>النتائج الرسمية للسباق</b></div>
+                <div style="background:var(--primary); color:#fff; padding:15px; text-align:center;"><b>النتائج الرسمية</b></div>
                 <div id="rankingList"></div>
                 <div class="copyright">BY ELMAKKAOUY</div>
             </div>
-            <button onclick="saveImage()" style="width:100%; padding:15px; background:var(--dark); color:#fff; border:none; border-radius:12px; margin-top:15px; font-weight:bold; cursor:pointer;">حفظ النتائج كصورة 📸</button>
+            <button onclick="saveImage()" style="width:100%; padding:15px; background:var(--dark); color:#fff; border:none; border-radius:12px; margin-top:15px; font-weight:bold;">حفظ كصورة 📸</button>
         </div>
     </div>
 </div>
@@ -65,15 +64,19 @@
 <script>
     let racers = [];
 
-    // تحديد الوقت الحالي تلقائياً مع الثواني عند الفتح
-    window.onload = () => {
+    // وظيفة للحصول على تاريخ اليوم مع توقيت 00:00:00
+    function getTodayWithZeros() {
         const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        // تنسيق يدعم الثواني ISO string slice(0,19)
-        document.getElementById('releaseDateTime').value = now.toISOString().slice(0, 19);
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}T00:00:00`;
+    }
+
+    window.onload = () => {
+        document.getElementById('releaseDateTime').value = getTodayWithZeros();
     };
 
-    // معالج ملف PDF
     document.getElementById('pdfInput').onchange = async (e) => {
         const file = e.target.files[0];
         const reader = new FileReader();
@@ -102,10 +105,7 @@
     };
 
     function renderRacers() {
-        const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        const dateStr = now.toISOString().slice(0, 19);
-
+        const defaultVal = getTodayWithZeros();
         document.getElementById('racersList').innerHTML = racers.map((r, i) => `
             <div class="card racer-card" data-name="${r.name}">
                 <div style="display:flex; justify-content:space-between; font-weight:bold;">
@@ -114,58 +114,52 @@
                 </div>
                 <div id="times-container-${i}" style="margin-top:10px;">
                     <div style="display:flex; align-items:center; margin-bottom:5px;">
-                        <input type="datetime-local" class="t-inp-${i}" value="${dateStr}" step="1">
+                        <input type="datetime-local" class="t-inp-${i}" value="${defaultVal}" step="1">
                     </div>
                 </div>
-                <button class="btn-add-pigeon" onclick="addTimeField(${i})">+ إضافة توقيت لحمامة أخرى</button>
+                <button class="btn-add-pigeon" onclick="addTimeField(${i})">+ إضافة حمامة أخرى لهذا المتسابق</button>
             </div>
         `).join('');
     }
 
-    // وظيفة إضافة توقيت آخر (حمامة أخرى)
     function addTimeField(idx) {
-        const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        const dateStr = now.toISOString().slice(0, 19);
-        
         const div = document.createElement('div');
         div.style.cssText = "display:flex; align-items:center; margin-top:5px;";
         div.innerHTML = `
-            <input type="datetime-local" class="t-inp-${idx}" value="${dateStr}" step="1">
+            <input type="datetime-local" class="t-inp-${idx}" value="${getTodayWithZeros()}" step="1">
             <button class="delete-time" onclick="this.parentElement.remove()">×</button>
         `;
         document.getElementById(`times-container-${idx}`).appendChild(div);
     }
 
     function addManual() {
-        racers.unshift({ name: "متسابق جديد", dist: 0, manual: true });
+        racers.unshift({ name: "متسابق يدوي", dist: 0, manual: true });
         renderRacers();
     }
 
     function calculateAll() {
         const release = new Date(document.getElementById('releaseDateTime').value);
-        if (isNaN(release)) return alert("يرجى ضبط وقت الإطلاق!");
+        if (isNaN(release)) return alert("يرجى تحديد وقت الإطلاق!");
 
         let results = [];
         racers.forEach((r, i) => {
             document.querySelectorAll(`.t-inp-${i}`).forEach(inp => {
                 if (inp.value) {
                     const arrival = new Date(inp.value);
-                    let diffSeconds = (arrival - release) / 1000;
+                    let diffSec = (arrival - release) / 1000;
                     
-                    if (diffSeconds > 0) {
-                        // خصم الوقت الميت تلقائياً (10:30 ليلاً إلى 6:00 صباحاً)
-                        let deadSeconds = calculateDeadSeconds(release, arrival);
-                        let finalSeconds = diffSeconds - deadSeconds;
-                        
-                        // السرعة بالمتر في الدقيقة (المسافة * 1000 / (الثواني / 60))
-                        let speed = (r.dist * 1000) / (finalSeconds / 60);
+                    if (diffSec > 0) {
+                        // خصم الوقت الميت (نصف ساعة بعد الغروب لقبل الشروق)
+                        // تقريباً من 20:30 إلى 06:00
+                        let deadSec = calculateDeadSec(release, arrival);
+                        let finalSec = diffSec - deadSec;
+                        let speed = (r.dist * 1000) / (finalSec / 60);
                         
                         results.push({ 
                             name: r.name, 
                             dist: r.dist, 
                             speed: speed, 
-                            time: inp.value.replace('T', ' ') 
+                            time: inp.value.split('T')[1] 
                         });
                     }
                 }
@@ -176,23 +170,16 @@
         showResults(results);
     }
 
-    // حساب الوقت الميت بالثواني لضمان الدقة
-    function calculateDeadSeconds(start, end) {
+    function calculateDeadSec(start, end) {
         let dead = 0;
         let s = new Date(start);
         s.setHours(0,0,0,0);
-        
         while (s < end) {
-            // الوقت الميت من 22:30:00 إلى 06:00:00
-            let night = new Date(s); night.setHours(22, 30, 0);
+            let night = new Date(s); night.setHours(20, 30, 0);
             let morning = new Date(s); morning.setDate(morning.getDate() + 1); morning.setHours(6, 0, 0);
-
             let overlapStart = new Date(Math.max(start, night));
             let overlapEnd = new Date(Math.min(end, morning));
-
-            if (overlapStart < overlapEnd) {
-                dead += (overlapEnd - overlapStart) / 1000;
-            }
+            if (overlapStart < overlapEnd) dead += (overlapEnd - overlapStart) / 1000;
             s.setDate(s.getDate() + 1);
         }
         return dead;
@@ -202,24 +189,17 @@
         const list = document.getElementById('rankingList');
         list.innerHTML = data.map((r, i) => `
             <div class="result-item">
-                <div>
-                    <b>${i+1}. ${r.name}</b><br>
-                    <small>${r.dist} Km | ${r.time.split(' ')[1]}</small>
-                </div>
-                <div style="text-align:left">
-                    <b style="color:var(--success); font-size:18px;">${r.speed.toFixed(3)}</b><br>
-                    <small>م/د</small>
-                </div>
+                <div><b>${i+1}. ${r.name}</b><br><small>${r.dist} Km | ${r.time}</small></div>
+                <div style="text-align:left"><b>${r.speed.toFixed(3)}</b><br><small>م/د</small></div>
             </div>
         `).join('');
         document.getElementById('rankingSection').style.display = 'block';
-        window.scrollTo({ top: document.getElementById('rankingSection').offsetTop, behavior: 'smooth' });
     }
 
     function saveImage() {
         html2canvas(document.getElementById('capture-area'), {scale: 2}).then(canvas => {
             const link = document.createElement('a');
-            link.download = 'ELMAKKAOUY_Pigeon_Results.png';
+            link.download = 'ELMAKKAOUY_Results.png';
             link.href = canvas.toDataURL();
             link.click();
         });
