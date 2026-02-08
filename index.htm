@@ -1,18 +1,16 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>حساب سرعة الحمام</title>
-        <title>BY ELMAKKAOUY</title>
-
+    <title>Pigeon Speed Calculator</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#3182ce">
     <style>
         body { margin: 0; background: #f0f2f5; font-family: 'Segoe UI', Tahoma, sans-serif; }
         #app-root { max-width: 500px; margin: 0 auto; min-height: 100vh; background: #fff; position: relative; }
         
-        /* تثبيت البحث وزر الحساب في الأعلى */
+        /* Sticky Header for Search and Calc */
         .sticky-header {
             position: sticky; top: 0; z-index: 1000;
             background: #ffffff; padding: 12px 15px;
@@ -36,29 +34,32 @@
         
         #rankingSection { margin-top: 20px; border-top: 4px solid #3182ce; padding-top: 15px; }
         .result-item { display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid #edf2f7; }
-        .top-1 { background: #fffaf0; border-right: 4px solid #ed8936; }
+        .top-1 { background: #fffaf0; border-left: 4px solid #ed8936; }
         
         .btn-save { width: 100%; padding: 15px; background: #4a5568; color: white; border: none; border-radius: 12px; font-weight: bold; margin-top: 10px; cursor: pointer; font-size: 16px; }
         .delete-btn { background:#fee2e2; color:#ef4444; border:none; padding:8px; border-radius:6px; cursor:pointer; }
+        
+        /* Watermark Style */
+        .watermark { text-align: center; padding: 10px; font-weight: bold; color: #cbd5e0; letter-spacing: 2px; font-size: 14px; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
-<div dir="rtl" id="app-root">
+<div id="app-root">
     <div class="sticky-header">
         <div class="header-row">
-            <h3 style="margin:0; color:#3182ce;">سرعة الحمام 🕊️</h3>
-            <button class="btn-calc" onclick="generateRankings()">حساب 🏆</button>
+            <h3 style="margin:0; color:#3182ce;">Pigeon Speed 🕊️</h3>
+            <button class="btn-calc" onclick="generateRankings()">Calculate 🏆</button>
         </div>
-        <input type="text" id="searchInput" onkeyup="filterNames()" placeholder="بحث سريع عن اسم...">
+        <input type="text" id="searchInput" onkeyup="filterNames()" placeholder="Search racer name...">
     </div>
 
     <div class="content">
         <div class="card" style="background:#f8fafc;">
-            <b>1. ملف الـ PDF ووقت الإطلاق:</b>
+            <b>1. Upload PDF & Release Time:</b>
             <input type="file" id="pdfInput" accept=".pdf">
-            <input type="text" id="lacheTime" placeholder="وقت الإطلاق 07:00:00" maxlength="8" oninput="formatTime(this)" inputmode="numeric">
-            <button onclick="addManualEntry()" style="background:#3182ce; color:white; border:none; padding:10px; border-radius:8px; width:100%; cursor:pointer;">+ إضافة يدوية</button>
+            <input type="text" id="lacheTime" placeholder="Release Time 07:00:00" maxlength="8" oninput="formatTime(this)" inputmode="numeric">
+            <button onclick="addManualEntry()" style="background:#3182ce; color:white; border:none; padding:10px; border-radius:8px; width:100%; cursor:pointer;">+ Add Manually</button>
         </div>
 
         <div id="inputSection">
@@ -66,11 +67,12 @@
         </div>
 
         <div id="rankingSection" style="display:none;">
-            <div id="capture-area" style="background:#fff; border-radius:8px; overflow:hidden;">
-                <div style="background:#3182ce; color:white; padding:12px; text-align:center;"><b>لوحة المتصدرين</b></div>
+            <div id="capture-area" style="background:#fff; border-radius:8px; overflow:hidden; border: 1px solid #ddd;">
+                <div style="background:#3182ce; color:white; padding:12px; text-align:center;"><b>LEADERBOARD</b></div>
                 <div id="rankingList"></div>
+                <div class="watermark">EL MAKKAOUY</div>
             </div>
-            <button class="btn-save" onclick="saveAsImage()">تحميل النتيجة كصورة 📸</button>
+            <button class="btn-save" onclick="saveAsImage()">Save as Image 📸</button>
         </div>
     </div>
 </div>
@@ -108,7 +110,7 @@
                 Object.keys(lines).sort((a,b)=>b-a).forEach(y => {
                     let row = lines[y].sort((a,b)=>a.transform[4]-b.transform[4]).map(it=>it.str.trim()).filter(s=>s!=="");
                     if (row.length >= 5 && /^\d+$/.test(row[0])) {
-                        extracted.push({ name: row[1], dist: parseFloat(row[row.length-1]) });
+                        extracted.push({ name: row[1], dist: parseFloat(row[row.length-1]), manual: false });
                     }
                 });
             }
@@ -130,8 +132,8 @@
             const card = document.createElement('div');
             card.className = "card";
             card.setAttribute('data-name', p.name);
-            let head = p.manual ? `<div style="display:flex; gap:5px;"><input type="text" placeholder="الاسم" onchange="basePigeons[${i}].name=this.value" style="flex:2;"><input type="number" placeholder="Km" onchange="basePigeons[${i}].dist=parseFloat(this.value)" style="flex:1;"></div>` : `<div style="display:flex; justify-content:space-between;"><b>${p.name}</b><span>${p.dist.toFixed(3)} Km</span></div>`;
-            card.innerHTML = head + `<div style="display:flex; gap:5px; margin-top:8px;"><input type="text" maxlength="8" oninput="formatTime(this)" inputmode="numeric" placeholder="00:00:00" class="t-inp-${i}" style="flex:1;"></div>`;
+            let head = p.manual ? `<div style="display:flex; gap:5px;"><input type="text" placeholder="Name" onchange="basePigeons[${i}].name=this.value; this.parentElement.parentElement.setAttribute('data-name', this.value)" style="flex:2;"><input type="number" placeholder="Km" onchange="basePigeons[${i}].dist=parseFloat(this.value)" style="flex:1;"></div>` : `<div style="display:flex; justify-content:space-between;"><b>${p.name}</b><span>${p.dist.toFixed(3)} Km</span></div>`;
+            card.innerHTML = head + `<div style="display:flex; gap:5px; margin-top:8px;"><input type="text" maxlength="8" oninput="formatTime(this)" inputmode="numeric" placeholder="Arrival 00:00:00" class="t-inp-${i}" style="flex:1;"></div>`;
             container.appendChild(card);
         });
     }
@@ -146,7 +148,7 @@
     function generateRankings() {
         let results = [];
         const lache = document.getElementById('lacheTime').value;
-        if(lache.length < 5) return alert("أدخل وقت الإطلاق");
+        if(lache.length < 5) return alert("Please enter Release Time");
         
         basePigeons.forEach((p, i) => {
             document.querySelectorAll(`.t-inp-${i}`).forEach(inp => {
@@ -160,29 +162,26 @@
             });
         });
         results.sort((a,b) => b.speed - a.speed);
-        document.getElementById('rankingList').innerHTML = results.map((r, i) => `<div class="result-item ${i==0?'top-1':''}"><div><b>${i+1}. ${r.name}</b><br><small>${r.dist.toFixed(3)} Km | ${r.time}</small></div><b>${r.speed.toFixed(3)}</b></div>`).join('');
+        document.getElementById('rankingList').innerHTML = results.map((r, i) => `<div class="result-item ${i==0?'top-1':''}"><div><b>${i+1}. ${r.name}</b><br><small>${r.dist.toFixed(3)} Km | ${r.time}</small></div><b>${r.speed.toFixed(3)} m/m</b></div>`).join('');
         document.getElementById('rankingSection').style.display = 'block';
         document.getElementById('rankingSection').scrollIntoView({ behavior: 'smooth' });
     }
 
     function saveAsImage() {
         const area = document.getElementById('capture-area');
-        html2canvas(area).then(canvas => {
+        html2canvas(area, { scale: 2 }).then(canvas => {
             const link = document.createElement('a');
-            link.download = 'results.png';
+            link.download = 'Pigeon_Results_EL_MAKKAOUY.png';
             link.href = canvas.toDataURL();
             link.click();
         });
     }
 
     if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js', { scope: './' })
-        .then(reg => console.log('تم التسجيل بنجاح!'))
-        .catch(err => console.log('فشل التسجيل:', err));
-    });
-}
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js', { scope: './' });
+        });
+    }
 </script>
 </body>
 </html>
-
