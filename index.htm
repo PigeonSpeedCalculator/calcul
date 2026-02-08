@@ -176,8 +176,13 @@
     }
 
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js');
-    }
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js', { scope: './' })
+        .then(reg => console.log('تم التسجيل بنجاح!'))
+        .catch(err => console.log('فشل التسجيل:', err));
+    });
+}
 </script>
 </body>
 </html>
+
