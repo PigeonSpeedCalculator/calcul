@@ -1,7 +1,7 @@
 {
-  "name": "حساب سرعة الحمام",
-  "short_name": "سرعة الحمام",
-  "description": "تطبيق احترافي لحساب سرعة الحمام الزاجل من ملفات PDF",
+  "name": "Pigeon Speed Calculator",
+  "short_name": "Pigeon Speed",
+  "description": "Professional Pigeon Race Speed Calculator",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
