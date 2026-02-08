@@ -2,7 +2,7 @@
   "name": "حساب سرعة الحمام",
   "short_name": "سرعة الحمام",
   "description": "تطبيق احترافي لحساب سرعة الحمام الزاجل من ملفات PDF",
-  "start_url": "./index.html",
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#3182ce",
