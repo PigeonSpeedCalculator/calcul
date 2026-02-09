@@ -2,161 +2,231 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ELMAKKAOUY | Metric Radar V1</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ELMAKKAOUY RADAR PRO - WEATHER & SPEED</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
     <style>
-        :root { --primary: #3b82f6; --bg: #0b0f19; --card: #161b2a; }
-        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; text-align: left; }
-        .header { background: var(--card); padding: 15px; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; }
-        .container { max-width: 1000px; margin: 0 auto; padding: 10px; }
-        #map { height: 380px; width: 100%; border-radius: 20px; border: 1px solid #2d3748; margin-bottom: 15px; }
-        .card { background: var(--card); border-radius: 20px; padding: 20px; border: 1px solid #2d3748; margin-bottom: 15px; }
-        .input-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        input { background: #0b0f19; color: white; border: 1px solid #334155; padding: 10px; border-radius: 8px; width: 100%; box-sizing: border-box; text-align: center; }
-        .btn-upload { background: var(--primary); color: white; padding: 15px; border-radius: 12px; width: 100%; border: none; font-weight: bold; cursor: pointer; font-size: 16px; }
-        .stats { display: flex; gap: 10px; margin-bottom: 15px; }
-        .stat-box { background: #1e293b; padding: 10px; border-radius: 10px; flex: 1; text-align: center; border: 1px solid #334155; }
-        .racer-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
-        .racer-table th { background: #1e293b; padding: 12px; text-align: left; border-bottom: 2px solid var(--primary); }
-        .racer-table td { padding: 12px; border-bottom: 1px solid #2d3748; }
-        .pigeon-marker { font-size: 24px; text-shadow: 0 0 10px white; }
+        :root { --primary: #2563eb; --accent: #f59e0b; --bg: #0b0f19; --card: #161b2a; }
+        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; overflow-x: hidden; }
+        
+        /* الهيدر */
+        .app-header { background: #111827; padding: 15px; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
+        .container { max-width: 800px; margin: 0 auto; padding: 10px; }
+
+        /* الخريطة */
+        #map { height: 350px; width: 100%; border-radius: 15px; border: 1px solid #334155; margin-bottom: 15px; z-index: 1; }
+
+        /* لوحة التحكم والطقس */
+        .weather-panel { background: rgba(37, 99, 235, 0.1); border: 1px solid var(--primary); border-radius: 15px; padding: 15px; display: flex; justify-content: space-around; margin-bottom: 15px; }
+        .w-item { text-align: center; }
+        .w-item b { display: block; color: var(--accent); font-size: 1.2rem; }
+
+        .card { background: var(--card); border-radius: 15px; padding: 15px; border: 1px solid #334155; margin-bottom: 15px; }
+        label { font-size: 11px; color: #94a3b8; font-weight: bold; margin-bottom: 5px; display: block; }
+        input { background: #0b0f19; border: 1px solid #475569; color: white; padding: 10px; border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 10px; text-align: center; }
+        
+        .btn-calc { background: #16a34a; color: white; border: none; padding: 12px; border-radius: 10px; width: 100%; font-weight: bold; font-size: 1rem; cursor: pointer; }
+        
+        /* قائمة المتسابقين */
+        .racer-box { border-left: 5px solid var(--primary); padding: 12px; background: #1e293b; border-radius: 0 10px 10px 0; margin-bottom: 10px; }
+        .time-row { display: flex; gap: 5px; align-items: center; margin-top: 5px; }
+        .time-row input { margin-bottom: 0; padding: 8px 2px; }
+
+        /* النتائج النهائية */
+        .res-table { background: white; color: black; border-radius: 12px; overflow: hidden; margin-top: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .res-header { background: var(--primary); color: white; padding: 15px; text-align: center; font-weight: bold; }
+        .res-row { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #eee; align-items: center; }
     </style>
 </head>
 <body>
 
-<header class="header">
-    <div style="font-weight: bold; font-size: 1.2rem;">ELMAKKAOUY <span style="color:var(--primary)">METRIC RADAR</span></div>
-    <div id="clock" style="font-family: monospace;">00:00:00</div>
+<header class="app-header">
+    <div style="font-weight: 900;">ELMAKKAOUY <span style="color:var(--primary)">RADAR PRO</span></div>
+    <div id="liveClock" style="color: var(--accent); font-family: monospace; font-weight: bold;">00:00:00</div>
 </header>
 
 <div class="container">
     <div id="map"></div>
 
-    <div class="stats">
-        <div class="stat-box">Pigeons: <b id="count">0</b></div>
-        <div class="stat-box">Status: <b id="status" style="color:#f59e0b;">Ready</b></div>
+    <div class="weather-panel">
+        <div class="w-item"><span>Wind Speed</span><b id="w-speed">-- km/h</b></div>
+        <div class="w-item"><span>Direction</span><b id="w-dir">--</b></div>
+        <div class="w-item"><span>Temp</span><b id="w-temp">--°C</b></div>
     </div>
 
     <div class="card">
-        <div class="input-group">
-            <div><label style="font-size:10px; color:#718096;">RELEASE COORD</label><input type="text" id="startCoord" value="33.2722, -8.3732"></div>
-            <div><label style="font-size:10px; color:#718096;">HOME COORD</label><input type="text" id="endCoord" value="33.5731, -7.5898"></div>
+        <label>📍 RELEASE COORD (LAT, LNG)</label>
+        <input type="text" id="startCoord" value="33.2722, -8.3732" onchange="updateWeatherAndMap()">
+
+        <label>🏁 RELEASE TIME</label>
+        <div class="time-row">
+            <input type="date" id="relDate">
+            <input type="number" id="relH" value="07" max="23"> : 
+            <input type="number" id="relM" value="00" max="59"> : 
+            <input type="number" id="relS" value="00" max="59">
         </div>
-        <button class="btn-upload" onclick="document.getElementById('pdfInput').click()">📁 UPLOAD RACE PDF</button>
-        <input type="file" id="pdfInput" hidden accept=".pdf" onchange="processPDF(event)">
+
+        <label style="margin-top:10px;">📄 UPLOAD PDF RACE REPORT</label>
+        <input type="file" id="pdfInput" accept=".pdf">
     </div>
 
-    <table class="racer-table" id="racerTable">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Competitor Name</th>
-                <th>Distance (m)</th>
-                <th>KM</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+    <button class="btn-calc" onclick="calculateFinal()">RUN RADAR ANALYSIS 🏆</button>
+
+    <div id="racersList" style="margin-top:15px;"></div>
+
+    <div id="resultArea" style="display:none;">
+        <div id="capture" class="res-table">
+            <div class="res-header">ELMAKKAOUY RADAR - OFFICIAL RESULTS</div>
+            <div id="rankings"></div>
+            <div style="text-align:center; padding:10px; font-size:10px; color:#999; letter-spacing:2px;">GENERATED BY RADAR PRO V2</div>
+        </div>
+        <button onclick="saveImage()" style="width:100%; padding:15px; background:#334155; color:white; border:none; border-radius:10px; margin-top:10px; font-weight:bold;">📸 SAVE RESULTS IMAGE</button>
+    </div>
 </div>
 
 <script>
-    let map, markers = [];
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+    let map, startMarker, racers = [];
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+    // تهيئة الخريطة والتاريخ
+    window.onload = () => {
+        document.getElementById('relDate').value = new Date().toISOString().split('T')[0];
+        initMap();
+        updateWeatherAndMap();
+        
+        setInterval(() => {
+            document.getElementById('liveClock').innerText = new Date().toTimeString().split(' ')[0];
+        }, 1000);
+    };
 
     function initMap() {
-        map = L.map('map', { zoomControl: false }).setView([33.4, -8], 8);
+        map = L.map('map', { zoomControl: false }).setView([33.2722, -8.3732], 7);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+        startMarker = L.marker([33.2722, -8.3732]).addTo(map).bindPopup("Release Point");
     }
 
-    async function processPDF(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+    // تحديث الطقس والخريطة
+    async function updateWeatherAndMap() {
+        const coords = document.getElementById('startCoord').value.split(',');
+        if(coords.length < 2) return;
+        const lat = parseFloat(coords[0]), lng = parseFloat(coords[1]);
+        
+        map.setView([lat, lng], 8);
+        startMarker.setLatLng([lat, lng]);
 
-        document.getElementById('status').innerText = "Processing...";
+        try {
+            const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=bd5e378503939ddaee76f12ad7a97608&units=metric`);
+            const d = await res.json();
+            document.getElementById('w-speed').innerText = (d.wind.speed * 3.6).toFixed(1) + " km/h";
+            document.getElementById('w-temp').innerText = d.main.temp.toFixed(1) + "°C";
+            const dirs = ['N','NE','E','SE','S','SW','W','NW'];
+            document.getElementById('w-dir').innerText = dirs[Math.round(d.wind.deg/45)%8];
+        } catch(e) { console.error("Weather Error"); }
+    }
+
+    // استخراج البيانات من الـ PDF
+    document.getElementById('pdfInput').onchange = async (e) => {
+        const file = e.target.files[0];
         const reader = new FileReader();
         reader.onload = async function() {
-            const typedArray = new Uint8Array(this.result);
-            const pdf = await pdfjsLib.getDocument(typedArray).promise;
-            let fullRawText = "";
+            const pdf = await pdfjsLib.getDocument(new Uint8Array(this.result)).promise;
+            let extracted = [];
 
             for (let i = 1; i <= pdf.numPages; i++) {
                 const page = await pdf.getPage(i);
-                const content = await page.getTextContent();
-                fullRawText += content.items.map(s => s.str).join(' ') + "\n";
+                const text = await page.getTextContent();
+                
+                let lines = {};
+                text.items.forEach(it => {
+                    let y = Math.round(it.transform[5]);
+                    if (!lines[y]) lines[y] = [];
+                    lines[y].push(it);
+                });
+
+                Object.keys(lines).sort((a,b) => b-a).forEach(y => {
+                    let row = lines[y].sort((a,b) => a.transform[4] - b.transform[4]).map(it => it.str.trim()).join(' ');
+                    
+                    // Regex للبحث عن المسافة (مثل 216.650)
+                    let distMatch = row.match(/(\d{2,3}\.\d{3})/);
+                    if (distMatch) {
+                        let name = row.replace(distMatch[0], '').replace(/[0-9]/g, '').trim().split(' ').slice(0, 2).join(' ');
+                        extracted.push({ name: name || "Competitor", dist: distMatch[0] });
+                    }
+                });
             }
-            extractMetricData(fullRawText);
+            racers = extracted;
+            renderRacers();
         };
         reader.readAsArrayBuffer(file);
+    };
+
+    function renderRacers() {
+        const list = document.getElementById('racersList');
+        const today = document.getElementById('relDate').value;
+        list.innerHTML = racers.map((r, i) => `
+            <div class="racer-box">
+                <div style="display:flex; justify-content:space-between;">
+                    <b>${r.name}</b>
+                    <span style="color:var(--accent); font-weight:bold;">${r.dist} Km</span>
+                </div>
+                <div class="time-row">
+                    <input type="date" class="arrD-${i}" value="${today}">
+                    <input type="number" class="arrH-${i}" value="12"> : <input type="number" class="arrM-${i}" value="00"> : <input type="number" class="arrS-${i}" value="00">
+                </div>
+            </div>
+        `).join('');
     }
 
-    function extractMetricData(text) {
-        const start = document.getElementById('startCoord').value.split(',').map(Number);
-        const end = document.getElementById('endCoord').value.split(',').map(Number);
-        const tbody = document.querySelector('#racerTable tbody');
-        
-        tbody.innerHTML = "";
-        markers.forEach(m => map.removeLayer(m));
-        markers = [];
+    function calculateFinal() {
+        const rD = document.getElementById('relDate').value;
+        const rH = document.getElementById('relH').value;
+        const rM = document.getElementById('relM').value;
+        const rS = document.getElementById('relS').value;
+        const release = new Date(`${rD}T${pad(rH)}:${pad(rM)}:${pad(rS)}`);
 
-        // البحث عن الأرقام الكبيرة (المسافات بالأمتار مثل 216650 أو 34003)
-        // Regex: يبحث عن أرقام مكونة من 5 إلى 7 خانات متتالية
-        const metricRegex = /\b(\d{5,7})\b/g;
-        const matches = [...text.matchAll(metricRegex)];
-        
-        let validCount = 0;
-        matches.forEach((match, index) => {
-            const rawDistance = parseInt(match[0]);
+        let scores = [];
+        racers.forEach((r, i) => {
+            const aD = document.querySelector(`.arrD-${i}`).value;
+            const aH = document.querySelector(`.arrH-${i}`).value;
+            const aM = document.querySelector(`.arrM-${i}`).value;
+            const aS = document.querySelector(`.arrS-${i}`).value;
+            const arrival = new Date(`${aD}T${pad(aH)}:${pad(aM)}:${pad(aS)}`);
             
-            // تحويل المسافة من أمتار إلى كيلومترات (قسمة على 1000)
-            const distInKm = rawDistance / 1000;
-
-            // استخراج الاسم: نأخذ النص الذي يسبق هذا الرقم بمسافة معينة
-            const pos = match.index;
-            const snippet = text.substring(pos - 40, pos).trim();
-            const name = snippet.split('\n').pop().replace(/[0-9]/g, '').trim() || "Racer " + (index + 1);
-
-            if (distInKm > 1) { // تجاهل الأرقام الصغيرة التي لا يمكن أن تكون مسافة سباق
-                validCount++;
-                
-                // حساب الموقع
-                const totalFlightDist = L.latLng(start).distanceTo(L.latLng(end)) / 1000;
-                const ratio = Math.min(distInKm / totalFlightDist, 1);
-                const lat = start[0] + (end[0] - start[0]) * ratio;
-                const lng = start[1] + (end[1] - start[1]) * ratio;
-
-                // خريطة
-                const m = L.marker([lat, lng], {
-                    icon: L.divIcon({ html: '🕊️', className: 'pigeon-marker', iconSize: [25, 25] })
-                }).addTo(map).bindPopup(`${name}: ${distInKm} KM`);
-                markers.push(m);
-
-                // جدول
-                tbody.innerHTML += `<tr>
-                    <td>${validCount}</td>
-                    <td><b>${name}</b></td>
-                    <td>${rawDistance}</td>
-                    <td style="color:#3b82f6; font-weight:bold;">${distInKm.toFixed(3)} KM</td>
-                </tr>`;
+            let diff = (arrival - release) / 1000;
+            if (diff > 0) {
+                let speed = (parseFloat(r.dist) * 1000) / (diff / 60);
+                scores.push({ name: r.name, dist: r.dist, speed, time: `${pad(aH)}:${pad(aM)}:${pad(aS)}` });
             }
         });
 
-        document.getElementById('count').innerText = validCount;
-        document.getElementById('status').innerText = "Completed";
-        if(markers.length > 0) {
-            map.fitBounds(new L.featureGroup(markers).getBounds(), {padding:[40,40]});
-        }
+        scores.sort((a,b) => b.speed - a.speed);
+        
+        const rankings = document.getElementById('rankings');
+        rankings.innerHTML = scores.map((s, i) => `
+            <div class="res-row">
+                <div><b>${i+1}. ${s.name}</b><br><small>${s.dist} Km | Arrival: ${s.time}</small></div>
+                <div style="text-align:right"><b style="color:#16a34a">${s.speed.toFixed(3)}</b><br><small>m/min</small></div>
+            </div>
+        `).join('');
+        document.getElementById('resultArea').style.display = 'block';
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
 
-    setInterval(() => {
-        document.getElementById('clock').innerText = new Date().toTimeString().split(' ')[0];
-    }, 1000);
+    function pad(n) { return String(n).padStart(2, '0'); }
 
-    initMap();
+    function saveImage() {
+        html2canvas(document.getElementById('capture')).then(canvas => {
+            const a = document.createElement('a');
+            a.download = 'ELMAKKAOUY_RADAR.png';
+            a.href = canvas.toDataURL();
+            a.click();
+        });
+    }
 </script>
 </body>
 </html>
