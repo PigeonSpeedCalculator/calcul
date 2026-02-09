@@ -1,67 +1,82 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>رادار المكاوي - نظام رفع الـ PDF المباشر</title>
+    <title>ELMAKKAOUY | Direct PDF Radar</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
 
     <style>
-        :root { --primary: #3b82f6; --bg: #0b0f19; --card: #161b2a; }
-        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; text-align: right; }
-        .header { background: var(--card); padding: 15px; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; }
-        .container { max-width: 800px; margin: 0 auto; padding: 10px; }
-        #map { height: 350px; width: 100%; border-radius: 20px; border: 1px solid #2d3748; margin-bottom: 15px; }
-        .card { background: var(--card); border-radius: 20px; padding: 20px; border: 1px solid #2d3748; }
+        :root { --primary: #3b82f6; --bg: #0b0f19; --card: #161b2a; --accent: #f59e0b; }
+        body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .header { background: var(--card); padding: 15px; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
+        .container { max-width: 900px; margin: 0 auto; padding: 15px; }
         
-        .upload-section { border: 2px dashed var(--primary); padding: 30px; border-radius: 15px; text-align: center; cursor: pointer; transition: 0.3s; margin-top: 15px; }
-        .upload-section:hover { background: rgba(59, 130, 246, 0.1); }
+        #map { height: 400px; width: 100%; border-radius: 20px; margin-bottom: 20px; border: 1px solid #2d3748; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+
+        .card { background: var(--card); border-radius: 20px; padding: 25px; border: 1px solid #2d3748; margin-bottom: 20px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         
-        input[type="text"], input[type="datetime-local"] { background: #0b0f19; color: white; border: 1px solid #2d3748; padding: 12px; width: 100%; border-radius: 10px; box-sizing: border-box; margin-top: 5px; text-align: center; }
+        label { font-size: 11px; color: #718096; font-weight: bold; margin-bottom: 8px; display: block; text-transform: uppercase; }
+        input { background: #0b0f19; border: 1px solid #334155; color: white; padding: 12px; border-radius: 10px; width: 100%; box-sizing: border-box; margin-bottom: 15px; text-align: center; font-size: 14px; }
+
+        /* PDF Upload Area */
+        .upload-zone { border: 2px dashed var(--primary); padding: 40px; border-radius: 15px; text-align: center; cursor: pointer; transition: 0.3s; background: rgba(59, 130, 246, 0.05); position: relative; }
+        .upload-zone:hover { background: rgba(59, 130, 246, 0.12); border-color: white; }
+        .upload-zone p { margin: 10px 0 0 0; font-weight: bold; font-size: 16px; }
         
-        .racer-table { width: 100%; margin-top: 20px; border-collapse: collapse; background: var(--card); border-radius: 15px; overflow: hidden; }
-        .racer-table th { background: var(--primary); color: white; padding: 12px; font-size: 14px; }
-        .racer-table td { padding: 12px; border-bottom: 1px solid #2d3748; text-align: center; font-size: 13px; }
-        
-        .status-loading { color: #f59e0b; display: none; margin: 10px 0; font-weight: bold; }
+        /* Results Table */
+        .results-table { width: 100%; border-collapse: collapse; margin-top: 20px; background: var(--card); border-radius: 15px; overflow: hidden; }
+        .results-table th { background: var(--primary); color: white; padding: 15px; font-size: 13px; text-align: left; }
+        .results-table td { padding: 15px; border-bottom: 1px solid #2d3748; font-size: 14px; }
+
+        .loading-overlay { display: none; color: var(--accent); font-weight: bold; text-align: center; margin-top: 15px; }
+        .pigeon-icon { font-size: 24px; text-shadow: 0 0 10px white; }
     </style>
 </head>
 <body>
 
 <header class="header">
-    <div style="font-weight: 900;">ELMAKKAOUY <span style="color:var(--primary)">PDF RADAR</span></div>
-    <div id="clock">00:00:00</div>
+    <div style="font-weight: 900; letter-spacing: 1px;">ELMAKKAOUY <span style="color:var(--primary)">RADAR PRO</span></div>
+    <div id="liveClock" style="font-family: monospace; color: var(--primary); font-weight: bold;">00:00:00</div>
 </header>
 
 <div class="container">
     <div id="map"></div>
 
     <div class="card">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-            <div><label>📍 نقطة الإطلاق (Lat, Lng)</label><input type="text" id="startCoord" value="33.2722, -8.3732"></div>
-            <div><label>🏙️ نقطة السنطرال (الهدف)</label><input type="text" id="endCoord" value="33.5731, -7.5898"></div>
+        <div class="grid-2">
+            <div>
+                <label>🏁 Release Coordinates (Lat, Lng)</label>
+                <input type="text" id="startPos" value="33.2722, -8.3732">
+            </div>
+            <div>
+                <label>🏙️ Central Hub (Goal)</label>
+                <input type="text" id="endPos" value="33.5731, -7.5898">
+            </div>
         </div>
-        
-        <label style="margin-top:15px; display:block;">⏰ وقت الإطلاق</label>
-        <input type="datetime-local" id="relTime">
 
-        <div class="upload-section" onclick="document.getElementById('pdfFile').click()">
+        <label>⏰ Official Release Time</label>
+        <input type="datetime-local" id="releaseTime">
+
+        <div class="upload-zone" onclick="document.getElementById('pdfInput').click()">
             <span style="font-size: 40px;">📄</span>
-            <p>اضغط هنا لرفع ملف الـ PDF مباشرة</p>
-            <input type="file" id="pdfFile" hidden accept=".pdf" onchange="handlePdfUpload(event)">
+            <p>Click to Upload Results PDF</p>
+            <span style="font-size: 11px; color: #718096;">The system will auto-extract Names & Distances</span>
+            <input type="file" id="pdfInput" hidden accept=".pdf" onchange="handlePDF(event)">
         </div>
-        <div id="loading" class="status-loading">جاري معالجة الملف واستخراج المتسابقين...</div>
+        <div id="status" class="loading-overlay">Reading PDF... Calculating Positions...</div>
     </div>
 
-    <table class="racer-table" id="resultsTable">
+    <table class="results-table" id="resultsTable">
         <thead>
             <tr>
-                <th>الاسم</th>
-                <th>المسافة (كم)</th>
-                <th>الموقع</th>
+                <th>Competitor</th>
+                <th>Distance (KM)</th>
+                <th>Status</th>
             </tr>
         </thead>
         <tbody>
@@ -74,83 +89,93 @@
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
     function initMap() {
-        map = L.map('map', { zoomControl: false }).setView([33.4, -8], 8);
+        map = L.map('map', { zoomControl: false }).setView([33.4, -8.0], 8);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-        document.getElementById('relTime').value = new Date().toISOString().slice(0, 16);
+        
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('releaseTime').value = now.toISOString().slice(0, 16);
     }
 
-    async function handlePdfUpload(event) {
+    async function handlePDF(event) {
         const file = event.target.files[0];
         if (!file) return;
 
-        document.getElementById('loading').style.display = 'block';
+        document.getElementById('status').style.display = 'block';
         const reader = new FileReader();
-        
+
         reader.onload = async function() {
             const typedarray = new Uint8Array(this.result);
-            const pdf = await pdfjsLib.getDocument(typedarray).promise;
-            let fullText = "";
+            try {
+                const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                let fullText = "";
 
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const textContent = await page.getTextContent();
-                fullText += textContent.items.map(s => s.str).join(' ') + "\n";
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const content = await page.getTextContent();
+                    fullText += content.items.map(s => s.str).join(' ') + "\n";
+                }
+                parseAndPlot(fullText);
+            } catch (err) {
+                alert("Error processing PDF. Please ensure it's a valid document.");
+                document.getElementById('status').style.display = 'none';
             }
-            
-            processText(fullText);
         };
         reader.readAsArrayBuffer(file);
     }
 
-    function processText(text) {
-        const start = document.getElementById('startCoord').value.split(',').map(Number);
-        const end = document.getElementById('endCoord').value.split(',').map(Number);
-        const tableBody = document.querySelector('#resultsTable tbody');
+    function parseAndPlot(text) {
+        const startCoords = document.getElementById('startPos').value.split(',').map(Number);
+        const endCoords = document.getElementById('endPos').value.split(',').map(Number);
+        const tbody = document.querySelector('#resultsTable tbody');
         
-        tableBody.innerHTML = "";
+        tbody.innerHTML = "";
         markers.forEach(m => map.removeLayer(m));
         markers = [];
 
-        // تقسيم النص ومحاولة استخراج الأسماء والمسافات (أرقام مثل 216.65)
+        // Regex looking for numbers like 216.65
         const lines = text.split('\n');
-        const distRegex = /(\d{2,3}\.\d{1,3})/;
+        const distancePattern = /(\d{2,3}\.\d{1,3})/;
 
         lines.forEach((line) => {
-            const match = line.match(distRegex);
+            const match = line.match(distancePattern);
             if (match) {
-                const distance = parseFloat(match[0]);
+                const dist = parseFloat(match[0]);
                 const namePart = line.split(match[0])[0].trim();
-                const name = namePart.length > 2 ? namePart : "متسابق";
+                const name = namePart.length > 2 ? namePart : "Competitor " + (markers.length + 1);
 
-                // حساب الإحداثيات
-                const totalDist = L.latLng(start).distanceTo(L.latLng(end)) / 1000;
-                const ratio = Math.min(distance / totalDist, 1);
-                const pos = [
-                    start[0] + (end[0] - start[0]) * ratio,
-                    start[1] + (end[1] - start[1]) * ratio
-                ];
+                // Math: Interpolate position on the line from Start to End
+                const totalLineDist = L.latLng(startCoords).distanceTo(L.latLng(endCoords)) / 1000;
+                const progress = Math.min(dist / totalLineDist, 1);
+                
+                const pLat = startCoords[0] + (endCoords[0] - startCoords[0]) * progress;
+                const pLng = startCoords[1] + (endCoords[1] - startCoords[1]) * progress;
 
-                // إضافة ماركر
-                const m = L.marker(pos, {
-                    icon: L.divIcon({ html: '🕊️', className: 'p-icon', iconSize: [20, 20] })
-                }).addTo(map);
-                markers.push(m);
+                // Add to Map
+                const marker = L.marker([pLat, pLng], {
+                    icon: L.divIcon({ html: '🕊️', className: 'pigeon-icon', iconSize: [25, 25] })
+                }).addTo(map).bindPopup(`<b>${name}</b><br>Dist: ${dist} km`);
+                markers.push(marker);
 
-                // إضافة للجدول
-                const row = `<tr><td>${name}</td><td>${distance}</td><td>تم التحديد 📍</td></tr>`;
-                tableBody.innerHTML += row;
+                // Add to Table
+                const row = `<tr>
+                    <td><b>${name}</b></td>
+                    <td style="color:#3b82f6; font-weight:bold;">${dist} KM</td>
+                    <td style="color:#22c55e;">Located 📍</td>
+                </tr>`;
+                tbody.innerHTML += row;
             }
         });
 
-        document.getElementById('loading').style.display = 'none';
-        if(markers.length > 0) {
+        document.getElementById('status').style.display = 'none';
+        if (markers.length > 0) {
             const group = new L.featureGroup(markers);
-            map.fitBounds(group.getBounds(), {padding: [50, 50]});
+            map.fitBounds(group.getBounds(), { padding: [50, 50] });
         }
     }
 
     setInterval(() => {
-        document.getElementById('clock').innerText = new Date().toTimeString().split(' ')[0];
+        document.getElementById('liveClock').innerText = new Date().toTimeString().split(' ')[0];
     }, 1000);
 
     initMap();
