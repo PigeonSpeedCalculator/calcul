@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ELMAKKAOUY | FULL EXTRACTOR V1</title>
+    <title>ELMAKKAOUY | Metric Radar V1</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -11,46 +11,53 @@
 
     <style>
         :root { --primary: #3b82f6; --bg: #0b0f19; --card: #161b2a; }
-        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; }
+        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; text-align: left; }
         .header { background: var(--card); padding: 15px; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; }
         .container { max-width: 1000px; margin: 0 auto; padding: 10px; }
-        #map { height: 350px; width: 100%; border-radius: 20px; border: 1px solid #2d3748; margin-bottom: 15px; }
-        .card { background: var(--card); border-radius: 20px; padding: 20px; border: 1px solid #2d3748; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        input { background: #0b0f19; color: white; border: 1px solid #334155; padding: 10px; border-radius: 8px; width: 100%; box-sizing: border-box; }
-        .btn-upload { background: var(--primary); color: white; padding: 15px; border-radius: 12px; width: 100%; border: none; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .racer-table { width: 100%; margin-top: 20px; border-collapse: collapse; font-size: 13px; }
-        .racer-table th { background: #1e293b; padding: 10px; text-align: left; border-bottom: 2px solid var(--primary); }
-        .racer-table td { padding: 10px; border-bottom: 1px solid #2d3748; }
-        .count-badge { background: #f59e0b; color: black; padding: 2px 8px; border-radius: 5px; font-weight: bold; }
+        #map { height: 380px; width: 100%; border-radius: 20px; border: 1px solid #2d3748; margin-bottom: 15px; }
+        .card { background: var(--card); border-radius: 20px; padding: 20px; border: 1px solid #2d3748; margin-bottom: 15px; }
+        .input-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        input { background: #0b0f19; color: white; border: 1px solid #334155; padding: 10px; border-radius: 8px; width: 100%; box-sizing: border-box; text-align: center; }
+        .btn-upload { background: var(--primary); color: white; padding: 15px; border-radius: 12px; width: 100%; border: none; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .stats { display: flex; gap: 10px; margin-bottom: 15px; }
+        .stat-box { background: #1e293b; padding: 10px; border-radius: 10px; flex: 1; text-align: center; border: 1px solid #334155; }
+        .racer-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+        .racer-table th { background: #1e293b; padding: 12px; text-align: left; border-bottom: 2px solid var(--primary); }
+        .racer-table td { padding: 12px; border-bottom: 1px solid #2d3748; }
+        .pigeon-marker { font-size: 24px; text-shadow: 0 0 10px white; }
     </style>
 </head>
 <body>
 
 <header class="header">
-    <div style="font-weight: bold;">ELMAKKAOUY <span style="color:var(--primary)">RADAR</span></div>
-    <div>Total: <span id="totalCount" class="count-badge">0</span></div>
+    <div style="font-weight: bold; font-size: 1.2rem;">ELMAKKAOUY <span style="color:var(--primary)">METRIC RADAR</span></div>
+    <div id="clock" style="font-family: monospace;">00:00:00</div>
 </header>
 
 <div class="container">
     <div id="map"></div>
 
+    <div class="stats">
+        <div class="stat-box">Pigeons: <b id="count">0</b></div>
+        <div class="stat-box">Status: <b id="status" style="color:#f59e0b;">Ready</b></div>
+    </div>
+
     <div class="card">
-        <div class="grid">
-            <div><label>Release Coord</label><input type="text" id="startP" value="33.2722, -8.3732"></div>
-            <div><label>Central Hub</label><input type="text" id="endP" value="33.5731, -7.5898"></div>
+        <div class="input-group">
+            <div><label style="font-size:10px; color:#718096;">RELEASE COORD</label><input type="text" id="startCoord" value="33.2722, -8.3732"></div>
+            <div><label style="font-size:10px; color:#718096;">HOME COORD</label><input type="text" id="endCoord" value="33.5731, -7.5898"></div>
         </div>
-        <button class="btn-upload" onclick="document.getElementById('pdfFile').click()">📁 Select PDF & Extract All</button>
-        <input type="file" id="pdfFile" hidden accept=".pdf" onchange="startExtraction(event)">
+        <button class="btn-upload" onclick="document.getElementById('pdfInput').click()">📁 UPLOAD RACE PDF</button>
+        <input type="file" id="pdfInput" hidden accept=".pdf" onchange="processPDF(event)">
     </div>
 
     <table class="racer-table" id="racerTable">
         <thead>
             <tr>
                 <th>#</th>
-                <th>Competitor Name / Raw Data</th>
-                <th>Distance</th>
-                <th>Map</th>
+                <th>Competitor Name</th>
+                <th>Distance (m)</th>
+                <th>KM</th>
             </tr>
         </thead>
         <tbody></tbody>
@@ -66,78 +73,88 @@
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
     }
 
-    async function startExtraction(event) {
+    async function processPDF(event) {
         const file = event.target.files[0];
         if (!file) return;
 
+        document.getElementById('status').innerText = "Processing...";
         const reader = new FileReader();
         reader.onload = async function() {
             const typedArray = new Uint8Array(this.result);
             const pdf = await pdfjsLib.getDocument(typedArray).promise;
-            let fullContent = "";
+            let fullRawText = "";
 
             for (let i = 1; i <= pdf.numPages; i++) {
                 const page = await pdf.getPage(i);
-                const text = await page.getTextContent();
-                // نجمع النصوص بنفس الطريقة البسيطة للنسخة الأولى
-                fullContent += text.items.map(s => s.str).join(' ') + "\n";
+                const content = await page.getTextContent();
+                fullRawText += content.items.map(s => s.str).join(' ') + "\n";
             }
-            parseAll(fullContent);
+            extractMetricData(fullRawText);
         };
         reader.readAsArrayBuffer(file);
     }
 
-    function parseAll(text) {
-        const start = document.getElementById('startP').value.split(',').map(Number);
-        const end = document.getElementById('endP').value.split(',').map(Number);
+    function extractMetricData(text) {
+        const start = document.getElementById('startCoord').value.split(',').map(Number);
+        const end = document.getElementById('endCoord').value.split(',').map(Number);
         const tbody = document.querySelector('#racerTable tbody');
         
         tbody.innerHTML = "";
         markers.forEach(m => map.removeLayer(m));
         markers = [];
 
-        // البحث الشامل عن كل رقم عشري (مسافة) في الملف
-        // هذا هو السر في نجاح النسخة الأولى
-        const distRegex = /(\d{2,3}\.\d{2,4})/g; 
-        const matches = text.matchAll(distRegex);
+        // البحث عن الأرقام الكبيرة (المسافات بالأمتار مثل 216650 أو 34003)
+        // Regex: يبحث عن أرقام مكونة من 5 إلى 7 خانات متتالية
+        const metricRegex = /\b(\d{5,7})\b/g;
+        const matches = [...text.matchAll(metricRegex)];
         
-        let count = 0;
-        for (const match of matches) {
-            const distance = parseFloat(match[0]);
-            count++;
+        let validCount = 0;
+        matches.forEach((match, index) => {
+            const rawDistance = parseInt(match[0]);
             
-            // استخراج الاسم (النص المحيط بالمسافة)
-            const index = match.index;
-            const surrounding = text.substring(index - 50, index).trim();
-            const name = surrounding.split('\n').pop().replace(/[0-9]/g, '').trim() || "Racer " + count;
+            // تحويل المسافة من أمتار إلى كيلومترات (قسمة على 1000)
+            const distInKm = rawDistance / 1000;
 
-            // حساب الموقع
-            const totalD = L.latLng(start).distanceTo(L.latLng(end)) / 1000;
-            const ratio = Math.min(distance / totalD, 1);
-            const pos = [
-                start[0] + (end[0] - start[0]) * ratio,
-                start[1] + (end[1] - start[1]) * ratio
-            ];
+            // استخراج الاسم: نأخذ النص الذي يسبق هذا الرقم بمسافة معينة
+            const pos = match.index;
+            const snippet = text.substring(pos - 40, pos).trim();
+            const name = snippet.split('\n').pop().replace(/[0-9]/g, '').trim() || "Racer " + (index + 1);
 
-            // إضافة للخريطة والجدول
-            const m = L.marker(pos, {
-                icon: L.divIcon({ html: '🕊️', className: 'p-icon', iconSize:[20,20] })
-            }).addTo(map).bindPopup(name);
-            markers.push(m);
+            if (distInKm > 1) { // تجاهل الأرقام الصغيرة التي لا يمكن أن تكون مسافة سباق
+                validCount++;
+                
+                // حساب الموقع
+                const totalFlightDist = L.latLng(start).distanceTo(L.latLng(end)) / 1000;
+                const ratio = Math.min(distInKm / totalFlightDist, 1);
+                const lat = start[0] + (end[0] - start[0]) * ratio;
+                const lng = start[1] + (end[1] - start[1]) * ratio;
 
-            tbody.innerHTML += `<tr>
-                <td>${count}</td>
-                <td>${name}</td>
-                <td style="color:#3b82f6; font-weight:bold;">${distance}</td>
-                <td>📍</td>
-            </tr>`;
-        }
+                // خريطة
+                const m = L.marker([lat, lng], {
+                    icon: L.divIcon({ html: '🕊️', className: 'pigeon-marker', iconSize: [25, 25] })
+                }).addTo(map).bindPopup(`${name}: ${distInKm} KM`);
+                markers.push(m);
 
-        document.getElementById('totalCount').innerText = count;
+                // جدول
+                tbody.innerHTML += `<tr>
+                    <td>${validCount}</td>
+                    <td><b>${name}</b></td>
+                    <td>${rawDistance}</td>
+                    <td style="color:#3b82f6; font-weight:bold;">${distInKm.toFixed(3)} KM</td>
+                </tr>`;
+            }
+        });
+
+        document.getElementById('count').innerText = validCount;
+        document.getElementById('status').innerText = "Completed";
         if(markers.length > 0) {
             map.fitBounds(new L.featureGroup(markers).getBounds(), {padding:[40,40]});
         }
     }
+
+    setInterval(() => {
+        document.getElementById('clock').innerText = new Date().toTimeString().split(' ')[0];
+    }, 1000);
 
     initMap();
 </script>
