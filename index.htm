@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>رادار المكاوي الاحترافي - ELMAKKAOUY RADAR</title>
+    <title>نظام المكاوي لاستخراج نتائج السباق</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -11,159 +11,140 @@
     <style>
         :root { --primary: #3b82f6; --bg: #0b0f19; --card: #161b2a; }
         body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; text-align: right; }
+        .header { background: var(--card); padding: 15px; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; }
+        .container { max-width: 700px; margin: 0 auto; padding: 15px; }
         
-        .header { background: var(--card); padding: 15px; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
-        .container { max-width: 800px; margin: 0 auto; padding: 15px; }
+        #map { height: 300px; width: 100%; border-radius: 20px; border: 1px solid #2d3748; margin-bottom: 20px; }
+
+        .card { background: var(--card); border-radius: 20px; padding: 20px; border: 1px solid #2d3748; margin-bottom: 15px; }
+        label { font-size: 12px; color: #718096; display: block; margin-bottom: 5px; }
+        input, textarea { background: #0b0f19; border: 1px solid #334155; color: white; padding: 12px; border-radius: 10px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
         
-        /* الخريطة */
-        #map { height: 350px; width: 100%; border-radius: 20px; margin-bottom: 20px; border: 1px solid #2d3748; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-
-        /* الإحصائيات */
-        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
-        .stat-box { background: var(--card); padding: 15px; border-radius: 15px; text-align: center; border: 1px solid #2d3748; }
-        .stat-box b { display: block; color: var(--primary); font-size: 1.4rem; }
-        .stat-box span { font-size: 11px; color: #718096; text-transform: uppercase; }
-
-        /* منطقة الإدخال */
-        .card { background: var(--card); border-radius: 20px; padding: 20px; border: 1px solid #2d3748; margin-bottom: 20px; }
-        label { font-size: 12px; color: #718096; font-weight: bold; margin-bottom: 8px; display: block; }
-        input, textarea { background: #0b0f19; border: 1px solid #2d3748; color: white; padding: 12px; border-radius: 10px; width: 100%; box-sizing: border-box; margin-bottom: 15px; font-size: 15px; text-align: center; }
+        textarea { height: 120px; font-size: 13px; text-align: right; resize: none; }
         
-        textarea { height: 100px; text-align: right; font-size: 13px; }
+        .btn-extract { background: #f59e0b; color: black; border: none; padding: 15px; border-radius: 12px; width: 100%; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .btn-extract:hover { background: #d97706; }
 
-        .btn { padding: 15px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; width: 100%; font-size: 15px; transition: 0.3s; }
-        .btn-process { background: #f59e0b; color: black; margin-bottom: 10px; }
-        .btn-radar { background: var(--primary); color: white; }
-
-        /* قائمة النتائج */
-        .results-list { margin-top: 20px; }
-        .racer-card { background: #1e293b; padding: 15px; border-radius: 15px; margin-bottom: 10px; border-right: 4px solid var(--primary); display: flex; justify-content: space-between; align-items: center; animation: slideIn 0.3s ease; }
+        /* جدول النتائج */
+        .racer-list { margin-top: 20px; }
+        .racer-row { background: #1e293b; padding: 12px 15px; border-radius: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-right: 4px solid var(--primary); }
+        .racer-info b { color: #fff; font-size: 15px; }
+        .racer-info span { color: #94a3b8; font-size: 12px; display: block; }
+        .racer-dist { background: rgba(59, 130, 246, 0.2); color: var(--primary); padding: 5px 10px; border-radius: 8px; font-weight: bold; font-size: 14px; }
         
-        .pigeon-icon { font-size: 24px; text-shadow: 0 0 10px white; }
-        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+        .empty-msg { text-align: center; color: #718096; padding: 20px; }
     </style>
 </head>
 <body>
 
 <header class="header">
-    <div style="font-weight: 900; font-size: 1.3rem;">ELMAKKAOUY <span style="color:var(--primary)">RADAR V4</span></div>
-    <div id="liveClock" style="font-family: monospace; color: var(--primary); font-weight: bold;">00:00:00</div>
+    <div style="font-weight: 900;">ELMAKKAOUY <span style="color:var(--primary)">DATA SYSTEM</span></div>
+    <div id="liveClock" style="font-family: monospace;">00:00:00</div>
 </header>
 
 <div class="container">
     <div id="map"></div>
 
-    <div class="stats-grid">
-        <div class="stat-box"><b id="s-count">0</b><span>متسابق</span></div>
-        <div class="stat-box"><b id="s-wind">--</b><span>الرياح كم/س</span></div>
-        <div class="stat-box"><b id="s-best">--</b><span>أفضل سرعة</span></div>
-    </div>
-
     <div class="card">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <div>
-                <label>📍 إحداثيات الإطلاق (Lat, Lng)</label>
-                <input type="text" id="relCoord" value="33.2722, -8.3732">
+                <label>📍 إحداثيات الإطلاق</label>
+                <input type="text" id="latStart" value="33.2722, -8.3732">
             </div>
             <div>
-                <label>🏙️ إحداثيات السنطرال (الهدف)</label>
-                <input type="text" id="homeCoord" value="33.5731, -7.5898">
+                <label>🏙️ إحداثيات السنطرال</label>
+                <input type="text" id="latEnd" value="33.5731, -7.5898">
             </div>
         </div>
-        
-        <label>⏰ وقت الإطلاق الرسمي</label>
-        <input type="datetime-local" id="relTime">
 
-        <label>📋 الصق بيانات المتسابقين هنا (الاسم والمسافة)</label>
-        <textarea id="dataInput" placeholder="مثال: عثمان 216.65 14:20:05"></textarea>
+        <label>📋 انسخ بيانات الجدول من الملف والصقها هنا:</label>
+        <textarea id="rawInput" placeholder="مثال:
+البطل أحمد 216.65
+البطل ياسين 190.40"></textarea>
 
-        <button class="btn btn-process" onclick="processData()">📥 استخراج البيانات وتحديد المواقع</button>
-        <button class="btn btn-radar" onclick="startRadarSim()">📡 بدء الرادار الحي</button>
+        <button class="btn-extract" onclick="extractData()">📥 استخراج النتائج وتحديد المواقع</button>
     </div>
 
-    <div id="results" class="results-list"></div>
+    <div id="racerList" class="racer-list">
+        <div class="empty-msg">لا توجد بيانات حالياً. قم بلصق النتائج واضغط استخراج.</div>
+    </div>
 </div>
 
 <script>
-    let map, markers = [], simInterval;
-    const API_KEY = '992e2b79f5e3386bda09d14ff4807f9d';
+    let map, markers = [];
 
+    // تشغيل الخريطة
     function initMap() {
         map = L.map('map', { zoomControl: false }).setView([33.4, -8], 8);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-        
-        // ضبط الوقت التلقائي
-        const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        document.getElementById('relTime').value = now.toISOString().slice(0, 16);
-        updateWeather();
     }
 
-    // المحرك الذكي لاستخراج البيانات وحساب الإحداثيات
-    function processData() {
-        const text = document.getElementById('dataInput').value;
-        const start = document.getElementById('relCoord').value.split(',').map(Number);
-        const end = document.getElementById('homeCoord').value.split(',').map(Number);
-        
-        if (!text) return alert("الرجاء لصق البيانات أولاً");
+    function extractData() {
+        const input = document.getElementById('rawInput').value;
+        const start = document.getElementById('latStart').value.split(',').map(Number);
+        const end = document.getElementById('latEnd').value.split(',').map(Number);
+        const listContainer = document.getElementById('racerList');
 
-        // تنظيف الخريطة
+        if (!input.trim()) {
+            alert("الرجاء لصق البيانات أولاً");
+            return;
+        }
+
+        // تنظيف البيانات السابقة
         markers.forEach(m => map.removeLayer(m));
         markers = [];
-        
-        const lines = text.split('\n');
-        let html = "";
-        let count = 0;
+        listContainer.innerHTML = "";
+
+        // تقسيم النص إلى أسطر
+        const lines = input.split('\n');
+        let found = false;
 
         lines.forEach((line) => {
-            // كاشف المسافات: يبحث عن أرقام مثل 216.65
-            const distMatch = line.match(/(\d{2,3}\.\d{1,3})/);
+            // منطق الاستخراج: البحث عن اسم (نصوص) متبوع برقم (المسافة)
+            // Regex: يبحث عن أرقام المسافات مثل 216.65 أو 190
+            const distMatch = line.match(/(\d{2,3}\.\d{1,3})|(\d{2,3})/);
+            
             if (distMatch) {
                 const distance = parseFloat(distMatch[0]);
-                count++;
-
-                // حساب الإحداثيات الجغرافية للمتسابق بناءً على المسافة من نقطة الإطلاق
-                const totalPathDist = L.latLng(start).distanceTo(L.latLng(end)) / 1000;
-                const ratio = Math.min(distance / totalPathDist, 1);
+                // استخراج الاسم: كل ما هو قبل الرقم
+                const name = line.split(distMatch[0])[0].trim() || "متسابق مجهول";
                 
-                const racerLat = start[0] + (end[0] - start[0]) * ratio;
-                const racerLng = start[1] + (end[1] - start[1]) * ratio;
+                found = true;
 
-                // إضافة ماركر المتسابق
-                const m = L.marker([racerLat, racerLng], {
-                    icon: L.divIcon({ html: '🕊️', className: 'pigeon-marker', iconSize: [25, 25] })
-                }).addTo(map).bindPopup(`المسافة: ${distance} كم`);
+                // 1. حساب الموقع الجغرافي للمتسابق
+                const totalDist = L.latLng(start).distanceTo(L.latLng(end)) / 1000;
+                const ratio = Math.min(distance / totalDist, 1);
+                const pos = [
+                    start[0] + (end[0] - start[0]) * ratio,
+                    start[1] + (end[1] - start[1]) * ratio
+                ];
+
+                // 2. إضافة الحمامة للخريطة
+                const m = L.marker(pos, {
+                    icon: L.divIcon({ html: '🕊️', className: 'p-icon', iconSize: [25, 25] })
+                }).addTo(map).bindPopup(`<b>${name}</b><br>المسافة: ${distance} كم`);
                 markers.push(m);
 
-                html += `
-                    <div class="racer-card">
-                        <div><b>متسابق رقم ${count}</b><br><small>المسافة: ${distance} كم</small></div>
-                        <div style="color:var(--primary); font-weight:bold;">📍 تم التحديد</div>
+                // 3. إضافة المتسابق للجدول السفلي
+                const row = document.createElement('div');
+                row.className = 'racer-row';
+                row.innerHTML = `
+                    <div class="racer-info">
+                        <b>${name}</b>
+                        <span>المسافة المعتمدة: ${distance} كم</span>
                     </div>
+                    <div class="racer-dist">${distance} KM</div>
                 `;
+                listContainer.appendChild(row);
             }
         });
 
-        document.getElementById('results').innerHTML = html;
-        document.getElementById('s-count').innerText = count;
-
-        if(markers.length > 0) {
+        if (!found) {
+            listContainer.innerHTML = "<div class='empty-msg'>تعذر العثور على مسافات في النص. تأكد من وجود أرقام المسافات.</div>";
+        } else if (markers.length > 0) {
             const group = new L.featureGroup(markers);
-            map.fitBounds(group.getBounds(), {padding: [50, 50]});
+            map.fitBounds(group.getBounds(), {padding: [40, 40]});
         }
-    }
-
-    async function updateWeather() {
-        const coords = document.getElementById('relCoord').value.split(',');
-        try {
-            const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${coords[0].trim()}&lon=${coords[1].trim()}&appid=${API_KEY}&units=metric`);
-            const data = await res.json();
-            document.getElementById('s-wind').innerText = (data.wind.speed * 3.6).toFixed(1);
-        } catch(e) { console.log("Weather error"); }
-    }
-
-    function startRadarSim() {
-        alert("بدأت المحاكاة الحية للمتسابقين بناءً على المسافات المستخرجة!");
     }
 
     setInterval(() => {
