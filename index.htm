@@ -3,219 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pigeon Speed Expert - ELMAKKAOUY</title>
+    <title>ELMAKKAOUY PRO - FINAL RADAR</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <style>
-        :root { --primary: #3b82f6; --success: #10b981; --bg: #0f172a; --card: #1e293b; --accent: #f59e0b; }
-        body { margin: 0; background: var(--bg); font-family: 'Segoe UI', sans-serif; color: white; }
-        .app-header { position: sticky; top: 0; z-index: 1000; background: #161b22; padding: 15px; border-bottom: 3px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
+        :root { --primary: #2563eb; --accent: #f59e0b; --bg: #0f172a; --card: #1e293b; }
+        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; }
+        .app-header { background: #161b22; padding: 15px; border-bottom: 3px solid var(--primary); text-align: center; }
         .container { max-width: 600px; margin: 0 auto; padding: 15px; }
         .card { background: var(--card); border-radius: 15px; padding: 15px; margin-bottom: 15px; border: 1px solid #334155; }
         
-        /* Wind Display Section */
-        .wind-info { display: flex; align-items: center; justify-content: space-around; background: rgba(59, 130, 246, 0.1); padding: 10px; border-radius: 12px; border: 1px solid var(--primary); margin-bottom: 15px; }
-        .wind-val { font-size: 1.2rem; font-weight: bold; color: var(--accent); }
+        /* Weather Widget */
+        .weather-bar { display: flex; justify-content: space-around; background: rgba(37, 99, 235, 0.1); padding: 12px; border-radius: 10px; margin-bottom: 15px; border: 1px solid var(--primary); }
+        .weather-item { text-align: center; }
+        .weather-item b { display: block; color: var(--accent); font-size: 1.1rem; }
 
-        .time-manual-group { display: flex; gap: 5px; align-items: center; margin-top: 10px; }
-        .time-manual-group input { background: #0f172a; color: white; border: 1px solid #475569; text-align: center; padding: 10px 2px; border-radius: 8px; width: 100%; font-weight: bold; }
+        input { background: #0f172a; color: white; border: 1px solid #475569; padding: 10px; border-radius: 8px; width: 100%; box-sizing: border-box; margin-top: 5px; }
+        .time-group { display: flex; gap: 5px; align-items: center; margin-top: 10px; }
         
-        input[type="text"], input[type="number"], input[type="date"] { padding: 12px; background: #0f172a; border: 1px solid #475569; border-radius: 8px; color: white; width: 100%; box-sizing: border-box; }
+        .btn-main { background: var(--primary); color: white; border: none; padding: 15px; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-calc { background: #16a34a; }
         
-        .racer-card { border-left: 5px solid var(--primary); transition: 0.3s; }
-        .racer-card:hover { border-left-color: var(--accent); }
-        .btn-calc { background: var(--success); color: #fff; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; }
-        
-        .res-table { background: #ffffff; color: #1e293b; border-radius: 15px; margin-top: 20px; overflow: hidden; }
-        .res-row { display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid #f1f5f9; }
-        .speed-val { color: var(--success); font-weight: 900; font-size: 1.1rem; }
-        .status-msg { color: var(--accent); font-weight: bold; text-align: center; font-size: 14px; margin: 10px 0; }
+        .racer-item { border-left: 5px solid var(--primary); padding: 10px; background: #1e293b; margin-bottom: 10px; border-radius: 0 10px 10px 0; }
+        .res-table { background: white; color: black; border-radius: 10px; overflow: hidden; margin-top: 20px; }
+        .res-row { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
 
 <header class="app-header">
-    <div style="font-weight: 900; letter-spacing: 1px; font-size: 1.2rem;">ELMAKKAOUY <span style="color:var(--primary)">RADAR</span></div>
-    <button class="btn-calc" onclick="calculate()">Calculate 🏆</button>
+    <div style="font-weight: 900; font-size: 1.4rem;">ELMAKKAOUY <span style="color:var(--primary)">RADAR PRO</span></div>
 </header>
 
 <div class="container">
-    <div class="wind-info" id="windDisplay">
-        <div style="text-align: center;"><span>Wind Speed</span><br><span class="wind-val" id="ws">-- km/h</span></div>
-        <div style="text-align: center;"><span>Direction</span><br><span class="wind-val" id="wd">--</span></div>
-        <div style="text-align: center;"><span>Temp</span><br><span class="wind-val" id="wt">--°C</span></div>
+    <div class="weather-bar" id="weatherBar">
+        <div class="weather-item"><span>Wind</span><b id="w-speed">--</b></div>
+        <div class="weather-item"><span>Dir</span><b id="w-dir">--</b></div>
+        <div class="weather-item"><span>Temp</span><b id="w-temp">--</b></div>
     </div>
 
     <div class="card">
-        <label style="font-size: 11px; font-weight: bold; color: #94a3b8;">📍 RELEASE COORDINATES (FOR WEATHER)</label>
-        <input type="text" id="startCoord" value="33.2722, -8.3732" onchange="updateWeather()" style="margin-bottom: 10px;">
-
-        <label style="font-size: 11px; font-weight: bold; color: #94a3b8;">🏁 RELEASE DATE & TIME</label>
-        <div class="time-manual-group">
+        <label>📍 Release Coord (for Wind)</label>
+        <input type="text" id="coords" value="33.2722, -8.3732" onchange="fetchWeather()">
+        
+        <label style="margin-top:10px; display:block;">🏁 Release Time</label>
+        <div class="time-group">
             <input type="date" id="relDate">
-            <input type="number" id="relHH" value="07"> : <input type="number" id="relMM" value="00"> : <input type="number" id="relSS" value="00">
+            <input type="number" id="relH" value="07">:<input type="number" id="relM" value="00">:<input type="number" id="relS" value="00">
         </div>
 
-        <div style="margin-top: 15px;">
-            <label style="font-size: 11px; font-weight: bold; color: #94a3b8;">📄 UPLOAD PDF RESULTS</label>
-            <input type="file" id="pdfInput" accept=".pdf" style="margin-top: 5px;">
-        </div>
-        <div id="statusMsg" class="status-msg">Upload PDF to auto-fill distances</div>
+        <label style="margin-top:10px; display:block;">📄 Select PDF File</label>
+        <input type="file" id="pdfFile" accept=".pdf">
+        <div id="loader" style="text-align:center; color:var(--accent); display:none; margin-top:10px;">Reading all data...</div>
     </div>
 
-    <div id="racersList"></div>
+    <button class="btn-main btn-calc" onclick="calculateAll()">RUN CALCULATION 🏆</button>
+
+    <div id="list"></div>
 
     <div id="resultArea" style="display:none;">
         <div id="capture" class="res-table">
-            <div style="background: var(--primary); color: #fff; text-align: center; padding: 15px; font-weight: bold; font-size: 1.2rem;">Official Radar Results</div>
+            <div style="background:var(--primary); color:white; padding:15px; text-align:center; font-weight:bold;">RACE RESULTS - ELMAKKAOUY</div>
             <div id="rankings"></div>
-            <div style="text-align: center; padding: 10px; color: #94a3b8; font-size: 10px; font-weight: bold; letter-spacing: 2px;">BY ELMAKKAOUY</div>
         </div>
-        <button onclick="saveImg()" style="width: 100%; padding: 15px; background: #334155; color: #fff; border: none; border-radius: 12px; margin-top: 15px; font-weight: bold; cursor: pointer;">📸 SAVE AS IMAGE</button>
+        <button class="btn-main" onclick="saveImage()" style="background:#334155;">SAVE AS IMAGE 📸</button>
     </div>
 </div>
 
 <script>
     let racers = [];
-    const WEATHER_KEY = '992e2b79f5e3386bda09d14ff4807f9d';
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
-    window.onload = () => {
-        document.getElementById('relDate').value = new Date().toISOString().split('T')[0];
-        updateWeather();
-    };
+    document.getElementById('relDate').value = new Date().toISOString().split('T')[0];
 
-    // 1. جلب بيانات الرياح الحقيقية
-    async function updateWeather() {
-        const coords = document.getElementById('startCoord').value.split(',');
-        if(coords.length < 2) return;
+    // 1. Weather Logic
+    async function fetchWeather() {
+        const c = document.getElementById('coords').value.split(',');
         try {
-            const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${coords[0].trim()}&lon=${coords[1].trim()}&appid=${WEATHER_KEY}&units=metric`);
-            const data = await res.json();
-            document.getElementById('ws').innerText = (data.wind.speed * 3.6).toFixed(1) + " km/h";
-            document.getElementById('wt').innerText = data.main.temp.toFixed(1) + "°C";
-            const deg = data.wind.deg;
-            const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-            document.getElementById('wd').innerText = directions[Math.round(deg / 45) % 8];
-        } catch(e) { console.log("Weather error"); }
+            const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${c[0].trim()}&lon=${c[1].trim()}&appid=bd5e378503939ddaee76f12ad7a97608&units=metric`);
+            const d = await res.json();
+            document.getElementById('w-speed').innerText = (d.wind.speed * 3.6).toFixed(1) + " km/h";
+            document.getElementById('w-temp').innerText = d.main.temp + "°C";
+            const dirs = ['N','NE','E','SE','S','SW','W','NW'];
+            document.getElementById('w-dir').innerText = dirs[Math.round(d.wind.deg/45)%8];
+        } catch(e) {}
     }
+    fetchWeather();
 
-    // 2. محرك استخراج المسافات من PDF
-    document.getElementById('pdfInput').onchange = async (e) => {
+    // 2. المحرك الشامل (قراءة النص الخام كما في النسخة الأولى)
+    document.getElementById('pdfFile').onchange = async (e) => {
         const file = e.target.files[0];
-        if (!file) return;
-        document.getElementById('statusMsg').innerText = "Scanning PDF Columns...";
-
+        document.getElementById('loader').style.display = 'block';
+        
         const reader = new FileReader();
         reader.onload = async function() {
             const pdf = await pdfjsLib.getDocument(new Uint8Array(this.result)).promise;
-            let list = [];
-
+            let fullText = "";
             for (let i = 1; i <= pdf.numPages; i++) {
                 const page = await pdf.getPage(i);
-                const text = await page.getTextContent();
-                let lines = {};
-                
-                text.items.forEach(it => {
-                    let y = Math.round(it.transform[5]);
-                    if (!lines[y]) lines[y] = [];
-                    lines[y].push(it);
-                });
-
-                Object.keys(lines).sort((a,b) => b-a).forEach(y => {
-                    let row = lines[y].sort((a,b) => a.transform[4] - b.transform[4]).map(it => it.str.trim());
-                    // الكشف عن المسافة (رقم عشري أو عدد مئوي طويل)
-                    let dMatch = row.find(v => /^(\d{2,3}\.\d{2,5})$|^(\d{5,7})$/.test(v));
-                    let nMatch = row.find(v => v.length > 3 && isNaN(v) && !v.includes(':'));
-
-                    if (dMatch && nMatch) {
-                        let d = parseFloat(dMatch);
-                        if (d > 1000) d = d / 1000; // تحويل الأمتار لكيلومترات
-                        list.push({ name: nMatch, dist: d.toFixed(3) });
-                    }
-                });
+                const content = await page.getTextContent();
+                // نجمع النصوص بدون قيود الأعمدة لضمان القراءة
+                fullText += content.items.map(it => it.str).join(' ') + "\n";
             }
-            racers = list;
-            document.getElementById('statusMsg').innerText = `Imported ${racers.length} Racers Successfully`;
-            render();
+            
+            // البحث عن المسافات (أرقام من 5 إلى 7 خانات أو أرقام عشرية)
+            const regex = /(\d{2,3}\.\d{3,5})|(\d{5,7})/g;
+            const matches = [...fullText.matchAll(regex)];
+            
+            racers = [];
+            matches.forEach((m, i) => {
+                let dist = parseFloat(m[0]);
+                if (dist > 1000) dist = dist / 1000; // تحويل الأمتار لكيلومترات
+
+                // محاولة إيجاد الاسم (النص الذي يسبق الرقم)
+                const startPos = Math.max(0, m.index - 50);
+                const snippet = fullText.substring(startPos, m.index);
+                const name = snippet.split(' ').filter(w => w.length > 3 && isNaN(w)).pop() || "Racer " + (i+1);
+
+                if (dist > 10) { // استبعاد الأرقام التي ليست مسافات سباق
+                    racers.push({ name: name.trim(), dist: dist.toFixed(3) });
+                }
+            });
+
+            renderList();
+            document.getElementById('loader').style.display = 'none';
         };
         reader.readAsArrayBuffer(file);
     };
 
-    function render() {
-        const container = document.getElementById('racersList');
-        const today = new Date().toISOString().split('T')[0];
-        container.innerHTML = racers.map((r, i) => `
-            <div class="card racer-card">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <b style="color: var(--primary);">${i+1}. ${r.name}</b>
-                    <span style="font-weight: bold; color: var(--accent);">${r.dist} Km</span>
+    function renderList() {
+        const list = document.getElementById('list');
+        list.innerHTML = racers.map((r, i) => `
+            <div class="racer-item">
+                <div style="display:flex; justify-content:space-between;">
+                    <b>${r.name}</b>
+                    <span style="color:var(--accent)">${r.dist} Km</span>
                 </div>
-                <div class="time-manual-group">
-                    <input type="date" class="arr-date-${i}" value="${today}">
-                    <input type="number" class="arr-hh-${i}" placeholder="HH" value="12"> :
-                    <input type="number" class="arr-mm-${i}" placeholder="MM" value="00"> :
-                    <input type="number" class="arr-ss-${i}" placeholder="SS" value="00">
+                <div class="time-group">
+                    <input type="date" class="d-${i}" value="${document.getElementById('relDate').value}">
+                    <input type="number" class="h-${i}" value="12">:<input type="number" class="m-${i}" value="00">:<input type="number" class="s-${i}" value="00">
                 </div>
             </div>
         `).join('');
     }
 
-    // 3. الحساب النهائي للسرعة m/min
-    function calculate() {
-        const relD = document.getElementById('relDate').value;
-        const relH = document.getElementById('relHH').value;
-        const relM = document.getElementById('relMM').value;
-        const relS = document.getElementById('relSS').value;
-        const release = new Date(`${relD}T${pad(relH)}:${pad(relM)}:${pad(relS)}`);
-        
+    function calculateAll() {
+        const relDate = document.getElementById('relDate').value;
+        const relH = document.getElementById('relH').value;
+        const relM = document.getElementById('relM').value;
+        const relS = document.getElementById('relS').value;
+        const release = new Date(`${relDate}T${pad(relH)}:${pad(relM)}:${pad(relS)}`);
+
         let results = [];
         racers.forEach((r, i) => {
-            const d = document.querySelector(`.arr-date-${i}`).value;
-            const h = document.querySelector(`.arr-hh-${i}`).value;
-            const m = document.querySelector(`.arr-mm-${i}`).value;
-            const s = document.querySelector(`.arr-ss-${i}`).value;
-            
+            const d = document.querySelector(`.d-${i}`).value;
+            const h = document.querySelector(`.h-${i}`).value;
+            const m = document.querySelector(`.m-${i}`).value;
+            const s = document.querySelector(`.s-${i}`).value;
             const arrival = new Date(`${d}T${pad(h)}:${pad(m)}:${pad(s)}`);
-            let diffSeconds = (arrival - release) / 1000;
-
-            if (diffSeconds > 0) {
-                let speed = (parseFloat(r.dist) * 1000) / (diffSeconds / 60);
-                results.push({ name: r.name, dist: r.dist, speed: speed, time: `${pad(h)}:${pad(m)}:${pad(s)}` });
+            
+            let seconds = (arrival - release) / 1000;
+            if (seconds > 0) {
+                let speed = (parseFloat(r.dist) * 1000) / (seconds / 60);
+                results.push({ ...r, speed, arrivalTime: `${pad(h)}:${pad(m)}:${pad(s)}` });
             }
         });
 
-        results.sort((a, b) => b.speed - a.speed);
-        showRankings(results);
-    }
-
-    function showRankings(data) {
-        const container = document.getElementById('rankings');
-        const wind = document.getElementById('ws').innerText;
-        container.innerHTML = data.map((r, i) => `
+        results.sort((a,b) => b.speed - a.speed);
+        
+        const rankings = document.getElementById('rankings');
+        rankings.innerHTML = results.map((r, i) => `
             <div class="res-row">
-                <div>
-                    <b>${i+1}. ${r.name}</b><br>
-                    <small style="color: #64748b;">${r.dist} Km | Arrival: ${r.time}</small>
-                </div>
-                <div style="text-align: right;">
-                    <b class="speed-val">${r.speed.toFixed(3)}</b><br>
-                    <small style="color: #94a3b8;">m/min</small>
-                </div>
+                <div><b>${i+1}. ${r.name}</b><br><small>${r.dist} Km | ${r.arrivalTime}</small></div>
+                <div style="text-align:right;"><b style="color:#16a34a">${r.speed.toFixed(3)}</b><br><small>m/min</small></div>
             </div>
         `).join('');
         document.getElementById('resultArea').style.display = 'block';
-        window.scrollTo(0, document.body.scrollHeight);
     }
 
     function pad(n) { return String(n).padStart(2, '0'); }
-
-    function saveImg() {
+    function saveImage() {
         html2canvas(document.getElementById('capture')).then(canvas => {
             const a = document.createElement('a');
-            a.download = 'ELMAKKAOUY_RESULTS.png';
+            a.download = 'Race_Results.png';
             a.href = canvas.toDataURL();
             a.click();
         });
