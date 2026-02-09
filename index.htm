@@ -1,251 +1,162 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr" id="html-tag">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pigeon Speed Expert - BY ELMAKKAOUY</title>
+    <title>Pigeon Simulator Pro - BY ELMAKKAOUY</title>
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
-    <style>
-        :root { --primary: #2563eb; --success: #16a34a; --dark: #1e293b; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
-        
-        body { margin: 0; background: var(--bg); color: var(--text); font-family: sans-serif; }
-        
-        /* Dashboard Stats (مثل الصورة) */
-        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 15px; }
-        .stat-box { background: var(--card); padding: 15px 5px; border-radius: 15px; text-align: center; border: 1px solid #334155; }
-        .stat-box h3 { margin: 0; font-size: 1.2rem; color: #38bdf8; }
-        .stat-box p { margin: 5px 0 0; font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; }
 
-        .app-header { position: sticky; top: 0; z-index: 1000; background: #1e293b; padding: 12px; border-bottom: 2px solid var(--primary); }
-        .container { max-width: 500px; margin: 0 auto; padding: 10px; }
+    <style>
+        :root { --primary: #3b82f6; --accent: #0ea5e9; --bg: #020617; --card: #1e293b; --text: #f8fafc; }
+        body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
         
-        /* Inputs */
-        .card { background: var(--card); border-radius: 20px; padding: 15px; margin-bottom: 15px; border: 1px solid #334155; }
-        input { background: #0f172a; border: 1px solid #334155; color: white; padding: 12px; border-radius: 10px; width: 100%; box-sizing: border-box; font-size: 16px; margin-bottom: 10px; }
+        /* Dashboard Styling */
+        .header { background: var(--card); padding: 15px; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 2000; }
+        .container { max-width: 600px; margin: 0 auto; padding: 10px; }
         
-        .time-input-group { display: flex; gap: 5px; align-items: center; justify-content: center; }
-        .time-input-group input { width: 60px; text-align: center; padding: 8px; margin: 0; }
-        
-        .btn-main { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; }
-        .btn-add-p { background: rgba(56, 189, 248, 0.1); color: #38bdf8; border: 1px dashed #38bdf8; padding: 10px; border-radius: 10px; width: 100%; margin-top: 10px; }
-        
-        /* Results Table */
-        .res-table { background: var(--card); border-radius: 20px; overflow: hidden; margin-top: 20px; }
-        .res-row { display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid #334155; align-items: center; }
-        .rank-num { background: var(--primary); padding: 5px 10px; border-radius: 8px; margin-right: 10px; font-weight: bold; }
-        
-        .copyright { text-align: center; padding: 20px; color: #475569; font-weight: bold; letter-spacing: 4px; font-size: 10px; }
+        #map { height: 300px; width: 100%; border-radius: 20px; margin: 15px 0; border: 2px solid #334155; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
+        .stat-card { background: var(--card); padding: 15px; border-radius: 15px; border: 1px solid #334155; text-align: center; }
+        .stat-card span { display: block; font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; margin-top: 5px; }
+        .stat-card b { font-size: 1.2rem; color: var(--accent); }
+
+        .input-box { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid #334155; margin-bottom: 15px; }
+        label { display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 8px; font-weight: bold; }
+        input { background: #0f172a; border: 1px solid #334155; color: white; padding: 12px; border-radius: 10px; width: 100%; box-sizing: border-box; margin-bottom: 12px; font-size: 16px; }
+
+        .pigeon-marker { font-size: 24px; filter: drop-shadow(0 0 5px #fff); }
+        .btn-fly { background: var(--primary); color: white; border: none; padding: 15px; border-radius: 15px; width: 100%; font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.3s; }
+        .btn-fly:hover { background: #2563eb; transform: translateY(-2px); }
+
+        .weather-info { font-size: 0.85rem; color: #38bdf8; display: flex; gap: 10px; justify-content: center; margin-top: 5px; }
     </style>
 </head>
 <body>
 
-<header class="app-header">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="font-weight:900; color:var(--primary)">ELMAKKAOUY PRO</div>
-        <button onclick="calculate()" style="background:var(--success); color:white; border:none; padding:8px 20px; border-radius:20px; font-weight:bold;">CALCULATE</button>
-    </div>
+<header class="header">
+    <div style="font-weight: 900; letter-spacing: 1px;">ELMAKKAOUY <span style="color:var(--primary)">SIMULATOR</span></div>
+    <div id="liveClock" style="font-family: monospace; font-size: 0.9rem;">00:00:00</div>
 </header>
 
 <div class="container">
-    
-    <div class="stats-grid" id="statsDash">
-        <div class="stat-box"><h3 id="stat-count">0</h3><p>Pigeons</p></div>
-        <div class="stat-box"><h3 id="stat-avg">0</h3><p>Avg m/min</p></div>
-        <div class="stat-box"><h3 id="stat-dist">0</h3><p>Max Km</p></div>
+    <div id="map"></div>
+
+    <div class="stats-grid">
+        <div class="stat-card"><b id="windSpeed">--</b><span>Wind (km/h)</span></div>
+        <div class="stat-card"><b id="windImpact">--</b><span>Wind Impact</span></div>
+        <div class="stat-card"><b id="estPos">--</b><span>Progress (%)</span></div>
+        <div class="stat-card"><b id="flyStatus">Waiting</b><span>Status</span></div>
     </div>
 
-    <div class="card">
-        <label style="font-size:12px; color:#94a3b8">UPLOAD PDF RESULTS</label>
-        <input type="file" id="pdfInput" accept=".pdf">
-        
-        <label style="font-size:12px; color:#94a3b8">RELEASE TIME (YYYY-MM-DD & HH:MM:SS)</label>
-        <input type="date" id="relDate">
-        <div class="time-input-group" id="relTimeGroup">
-            <input type="number" id="relH" placeholder="HH" value="00"> :
-            <input type="number" id="relM" placeholder="MM" value="00"> :
-            <input type="number" id="relS" placeholder="SS" value="00">
+    <div class="input-box">
+        <label>🏁 COORDINATES (LAT, LNG)</label>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="startLat" placeholder="Lat (e.g. 33.27)" value="33.2722">
+            <input type="text" id="startLng" placeholder="Lng (e.g. -8.37)" value="-8.3732">
         </div>
-        <button class="btn-add-p" onclick="addManualRacer()" style="margin-top:15px;">+ ADD MANUAL RACER</button>
-    </div>
 
-    <div id="racersList"></div>
+        <label>🏁 RELEASE TIME</label>
+        <input type="datetime-local" id="relDateTime" step="1">
 
-    <div id="resultArea" style="display:none;">
-        <div id="capture" style="background:var(--bg); padding:10px;">
-            <div class="res-table">
-                <div style="padding:15px; background:var(--primary); text-align:center; font-weight:bold;">OFFICIAL RANKINGS</div>
-                <div id="rankings"></div>
-                <div class="copyright">BY ELMAKKAOUY</div>
-            </div>
-        </div>
-        <button onclick="saveImg()" class="btn-main" style="background:#475569; margin-top:15px;">SAVE AS IMAGE 📸</button>
+        <label>🕊️ TARGET RACER DISTANCE (KM)</label>
+        <input type="number" id="targetDist" placeholder="Distance in KM" value="216.6">
+
+        <button class="btn-fly" onclick="startSimulation()">START LIVE TRACKING 🚀</button>
     </div>
 </div>
 
 <script>
-    let racers = [];
-    const pdfjs = window['pdfjs-dist/build/pdf'];
-    pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    let map, pigeonMarker, polyline;
+    let simInterval;
+    const API_KEY = 'bd5e378503939ddaee76f12ad7a97608'; // OpenWeatherMap Key (Example)
 
-    window.onload = () => {
-        document.getElementById('relDate').value = new Date().toISOString().split('T')[0];
-    };
-
-    function addManualRacer() {
-        racers.unshift({ name: "", dist: 0, manual: true });
-        render();
-    }
-
-    function render() {
-        const container = document.getElementById('racersList');
-        const today = new Date().toISOString().split('T')[0];
-        container.innerHTML = racers.map((r, i) => `
-            <div class="card" style="border-left:4px solid var(--primary)">
-                <div style="margin-bottom:10px;">
-                    ${r.manual ? 
-                        `<input type="text" placeholder="Racer Name" oninput="racers[${i}].name=this.value">
-                         <input type="number" placeholder="Distance Km" oninput="racers[${i}].dist=this.value">` 
-                        : `<div style="display:flex; justify-content:space-between"><b>${r.name}</b> <span style="color:#38bdf8">${r.dist} Km</span></div>`}
-                </div>
-                <div id="times-${i}">
-                    <div class="time-input-group" style="background:#0f172a; padding:10px; border-radius:10px;">
-                        <input type="date" class="d-in-${i}" value="${today}" style="width:130px; margin:0">
-                        <input type="number" class="h-${i}" value="00"> :
-                        <input type="number" class="m-${i}" value="00"> :
-                        <input type="number" class="s-${i}" value="00">
-                    </div>
-                </div>
-                <button class="btn-add-p" onclick="addPigeon(${i})" style="font-size:12px;">+ ANOTHER PIGEON</button>
-            </div>
-        `).join('');
-    }
-
-    function addPigeon(i) {
-        const div = document.createElement('div');
-        div.className = 'time-input-group';
-        div.style.marginTop = "8px";
-        div.style.background = "#0f172a";
-        div.style.padding = "10px";
-        div.style.borderRadius = "10px";
-        div.innerHTML = `
-            <input type="date" class="d-in-${i}" value="${new Date().toISOString().split('T')[0]}" style="width:130px; margin:0">
-            <input type="number" class="h-${i}" value="00"> : <input type="number" class="m-${i}" value="00"> : <input type="number" class="s-${i}" value="00">
-            <button onclick="this.parentElement.remove()" style="color:red; background:none; border:none; font-size:20px;">×</button>
-        `;
-        document.getElementById(`times-${i}`).appendChild(div);
-    }
-
-    function calculate() {
-        const rD = document.getElementById('relDate').value;
-        const rH = document.getElementById('relH').value;
-        const rM = document.getElementById('relM').value;
-        const rS = document.getElementById('relS').value;
-        const release = new Date(`${rD}T${pad(rH)}:${pad(rM)}:${pad(rS)}`);
+    // Initialize Map
+    function initMap() {
+        map = L.map('map', { zoomControl: false }).setView([33.2722, -8.3732], 8);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
         
-        let results = [];
-        let totalSpeed = 0;
-        let maxDist = 0;
+        document.getElementById('relDateTime').value = new Date().toISOString().slice(0, 19);
+    }
 
-        racers.forEach((r, i) => {
-            const ds = document.querySelectorAll(`.d-in-${i}`);
-            const hs = document.querySelectorAll(`.h-${i}`);
-            const ms = document.querySelectorAll(`.m-${i}`);
-            const ss = document.querySelectorAll(`.s-${i}`);
+    // Get Weather Data
+    async function fetchWeather(lat, lng) {
+        try {
+            const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${API_KEY}&units=metric`);
+            const data = await response.json();
+            document.getElementById('windSpeed').innerText = data.wind.speed + ' m/s';
+            analyzeWind(data.wind.deg);
+        } catch (e) { console.log("Weather error", e); }
+    }
 
-            ds.forEach((d, idx) => {
-                const arrival = new Date(`${d.value}T${pad(hs[idx].value)}:${pad(ms[idx].value)}:${pad(ss[idx].value)}`);
-                let diff = (arrival - release) / 1000;
-                if (diff > 0) {
-                    diff -= getDeadTime(release, arrival);
-                    let speed = (parseFloat(r.dist) * 1000) / (diff / 60);
-                    results.push({ name: r.name, dist: r.dist, speed, time: `${pad(hs[idx].value)}:${pad(ms[idx].value)}` });
-                    totalSpeed += speed;
-                    if(parseFloat(r.dist) > maxDist) maxDist = parseFloat(r.dist);
-                }
-            });
-        });
+    function analyzeWind(deg) {
+        // تبسيط: إذا كانت الرياح بين 0-180 فهي مساعدة، 180-360 عكسية (حسب المسار)
+        const impact = (deg > 180) ? "HEADWIND 🚩" : "TAILWIND ✅";
+        document.getElementById('windImpact').innerText = impact;
+        document.getElementById('windImpact').style.color = (deg > 180) ? "#ef4444" : "#22c55e";
+    }
 
-        results.sort((a, b) => b.speed - a.speed);
+    function startSimulation() {
+        if(simInterval) clearInterval(simInterval);
         
-        // Update Stats Dashboard
-        document.getElementById('stat-count').innerText = results.length;
-        document.getElementById('stat-avg').innerText = results.length ? (totalSpeed / results.length).toFixed(1) : 0;
-        document.getElementById('stat-dist').innerText = maxDist;
+        const startLat = parseFloat(document.getElementById('startLat').value);
+        const startLng = parseFloat(document.getElementById('startLng').value);
+        const relTime = new Date(document.getElementById('relDateTime').value);
+        const dist = parseFloat(document.getElementById('targetDist').value);
+        
+        fetchWeather(startLat, startLng);
 
-        showResults(results);
-    }
+        // افتراض نقطة نهاية وهمية للمسار (شمالاً مثلاً)
+        const endLat = startLat + (dist / 111); // تقريبي
+        const endLng = startLng + 0.5;
 
-    function getDeadTime(s, e) {
-        let dead = 0;
-        let c = new Date(s); c.setHours(0,0,0,0);
-        while (c <= e) {
-            let nS = new Date(c); nS.setHours(20, 30, 0);
-            let mE = new Date(c); mE.setDate(mE.getDate()+1); mE.setHours(6, 0, 0);
-            let oS = new Date(Math.max(s, nS));
-            let oE = new Date(Math.min(e, mE));
-            if (oS < oE) dead += (oE - oS) / 1000;
-            c.setDate(c.getDate()+1);
-        }
-        return dead;
-    }
+        // Clear existing layers
+        if(pigeonMarker) map.removeLayer(pigeonMarker);
+        if(polyline) map.removeLayer(polyline);
 
-    function showResults(data) {
-        const container = document.getElementById('rankings');
-        container.innerHTML = data.map((r, i) => `
-            <div class="res-row">
-                <div style="display:flex; align-items:center;">
-                    <span class="rank-num">${i+1}</span>
-                    <div><b>${r.name}</b><br><small style="color:#94a3b8">${r.dist} Km | ${r.time}</small></div>
-                </div>
-                <div style="text-align:right">
-                    <b style="color:#22c55e; font-size:1.1rem">${r.speed.toFixed(3)}</b><br>
-                    <small style="color:#94a3b8">m/min</small>
-                </div>
-            </div>
-        `).join('');
-        document.getElementById('resultArea').style.display = 'block';
-    }
+        polyline = L.polyline([[startLat, startLng], [endLat, endLng]], {color: '#3b82f6', weight: 3, dashArray: '10, 10'}).addTo(map);
+        pigeonMarker = L.marker([startLat, startLng], {
+            icon: L.divIcon({ html: '<div class="pigeon-marker">🕊️</div>', className: 'p-icon' })
+        }).addTo(map);
 
-    function pad(n) { return String(n).padStart(2, '0'); }
+        map.fitBounds(polyline.getBounds());
 
-    document.getElementById('pdfInput').onchange = async (e) => {
-        const file = e.target.files[0];
-        const reader = new FileReader();
-        reader.onload = async function() {
-            const pdf = await pdfjs.getDocument(new Uint8Array(this.result)).promise;
-            let list = [];
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const text = await page.getTextContent();
-                let lines = {};
-                text.items.forEach(it => {
-                    let y = Math.round(it.transform[5]);
-                    if (!lines[y]) lines[y] = [];
-                    lines[y].push(it);
-                });
-                Object.keys(lines).sort((a,b)=>b-a).forEach(y => {
-                    let row = lines[y].sort((a,b)=>a.transform[4]-b.transform[4]).map(it => it.str.trim()).filter(s => s !== "");
-                    let d = row.find(v => /^\d+\.\d{3}$/.test(v));
-                    let n = row.find(v => v.length > 3 && isNaN(v));
-                    if (d && n) list.push({ name: n, dist: parseFloat(d), manual: false });
-                });
+        simInterval = setInterval(() => {
+            const now = new Date();
+            const elapsedMins = (now - relTime) / (1000 * 60);
+            
+            if (elapsedMins < 0) {
+                document.getElementById('flyStatus').innerText = "Waiting...";
+                return;
             }
-            racers = list; render();
-        };
-        reader.readAsArrayBuffer(file);
-    };
 
-    function saveImg() {
-        html2canvas(document.getElementById('capture')).then(canvas => {
-            const a = document.createElement('a');
-            a.download = 'PigeonResults.png';
-            a.href = canvas.toDataURL();
-            a.click();
-        });
+            // محاكاة سرعة متوسطة 1000 م/د
+            const coveredDist = (elapsedMins * 1000) / 1000; // km
+            const progress = Math.min((coveredDist / dist), 1);
+            
+            // تحريك الحمامة برمجياً
+            const currentLat = startLat + (endLat - startLat) * progress;
+            const currentLng = startLng + (endLng - startLng) * progress;
+            
+            pigeonMarker.setLatLng([currentLat, currentLng]);
+            document.getElementById('estPos').innerText = (progress * 100).toFixed(1) + '%';
+            document.getElementById('flyStatus').innerText = progress >= 1 ? "ARRIVED" : "FLYING";
+            
+            if(progress >= 1) clearInterval(simInterval);
+        }, 1000);
     }
+
+    // Live Clock
+    setInterval(() => {
+        const d = new Date();
+        document.getElementById('liveClock').innerText = d.getHours().toString().padStart(2,'0') + ":" + 
+            d.getMinutes().toString().padStart(2,'0') + ":" + d.getSeconds().toString().padStart(2,'0');
+    }, 1000);
+
+    initMap();
 </script>
 </body>
 </html>
