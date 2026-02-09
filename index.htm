@@ -2,196 +2,161 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ELMAKKAOUY PRO - FINAL RADAR</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ELMAKKAOUY | Metric Radar V1</title>
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
-    <style>
-        :root { --primary: #2563eb; --accent: #f59e0b; --bg: #0f172a; --card: #1e293b; }
-        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; }
-        .app-header { background: #161b22; padding: 15px; border-bottom: 3px solid var(--primary); text-align: center; }
-        .container { max-width: 600px; margin: 0 auto; padding: 15px; }
-        .card { background: var(--card); border-radius: 15px; padding: 15px; margin-bottom: 15px; border: 1px solid #334155; }
-        
-        /* Weather Widget */
-        .weather-bar { display: flex; justify-content: space-around; background: rgba(37, 99, 235, 0.1); padding: 12px; border-radius: 10px; margin-bottom: 15px; border: 1px solid var(--primary); }
-        .weather-item { text-align: center; }
-        .weather-item b { display: block; color: var(--accent); font-size: 1.1rem; }
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
 
-        input { background: #0f172a; color: white; border: 1px solid #475569; padding: 10px; border-radius: 8px; width: 100%; box-sizing: border-box; margin-top: 5px; }
-        .time-group { display: flex; gap: 5px; align-items: center; margin-top: 10px; }
-        
-        .btn-main { background: var(--primary); color: white; border: none; padding: 15px; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .btn-calc { background: #16a34a; }
-        
-        .racer-item { border-left: 5px solid var(--primary); padding: 10px; background: #1e293b; margin-bottom: 10px; border-radius: 0 10px 10px 0; }
-        .res-table { background: white; color: black; border-radius: 10px; overflow: hidden; margin-top: 20px; }
-        .res-row { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #eee; }
+    <style>
+        :root { --primary: #3b82f6; --bg: #0b0f19; --card: #161b2a; }
+        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; text-align: left; }
+        .header { background: var(--card); padding: 15px; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 10px; }
+        #map { height: 380px; width: 100%; border-radius: 20px; border: 1px solid #2d3748; margin-bottom: 15px; }
+        .card { background: var(--card); border-radius: 20px; padding: 20px; border: 1px solid #2d3748; margin-bottom: 15px; }
+        .input-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        input { background: #0b0f19; color: white; border: 1px solid #334155; padding: 10px; border-radius: 8px; width: 100%; box-sizing: border-box; text-align: center; }
+        .btn-upload { background: var(--primary); color: white; padding: 15px; border-radius: 12px; width: 100%; border: none; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .stats { display: flex; gap: 10px; margin-bottom: 15px; }
+        .stat-box { background: #1e293b; padding: 10px; border-radius: 10px; flex: 1; text-align: center; border: 1px solid #334155; }
+        .racer-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+        .racer-table th { background: #1e293b; padding: 12px; text-align: left; border-bottom: 2px solid var(--primary); }
+        .racer-table td { padding: 12px; border-bottom: 1px solid #2d3748; }
+        .pigeon-marker { font-size: 24px; text-shadow: 0 0 10px white; }
     </style>
 </head>
 <body>
 
-<header class="app-header">
-    <div style="font-weight: 900; font-size: 1.4rem;">ELMAKKAOUY <span style="color:var(--primary)">RADAR PRO</span></div>
+<header class="header">
+    <div style="font-weight: bold; font-size: 1.2rem;">ELMAKKAOUY <span style="color:var(--primary)">METRIC RADAR</span></div>
+    <div id="clock" style="font-family: monospace;">00:00:00</div>
 </header>
 
 <div class="container">
-    <div class="weather-bar" id="weatherBar">
-        <div class="weather-item"><span>Wind</span><b id="w-speed">--</b></div>
-        <div class="weather-item"><span>Dir</span><b id="w-dir">--</b></div>
-        <div class="weather-item"><span>Temp</span><b id="w-temp">--</b></div>
+    <div id="map"></div>
+
+    <div class="stats">
+        <div class="stat-box">Pigeons: <b id="count">0</b></div>
+        <div class="stat-box">Status: <b id="status" style="color:#f59e0b;">Ready</b></div>
     </div>
 
     <div class="card">
-        <label>📍 Release Coord (for Wind)</label>
-        <input type="text" id="coords" value="33.2722, -8.3732" onchange="fetchWeather()">
-        
-        <label style="margin-top:10px; display:block;">🏁 Release Time</label>
-        <div class="time-group">
-            <input type="date" id="relDate">
-            <input type="number" id="relH" value="07">:<input type="number" id="relM" value="00">:<input type="number" id="relS" value="00">
+        <div class="input-group">
+            <div><label style="font-size:10px; color:#718096;">RELEASE COORD</label><input type="text" id="startCoord" value="33.2722, -8.3732"></div>
+            <div><label style="font-size:10px; color:#718096;">HOME COORD</label><input type="text" id="endCoord" value="33.5731, -7.5898"></div>
         </div>
-
-        <label style="margin-top:10px; display:block;">📄 Select PDF File</label>
-        <input type="file" id="pdfFile" accept=".pdf">
-        <div id="loader" style="text-align:center; color:var(--accent); display:none; margin-top:10px;">Reading all data...</div>
+        <button class="btn-upload" onclick="document.getElementById('pdfInput').click()">📁 UPLOAD RACE PDF</button>
+        <input type="file" id="pdfInput" hidden accept=".pdf" onchange="processPDF(event)">
     </div>
 
-    <button class="btn-main btn-calc" onclick="calculateAll()">RUN CALCULATION 🏆</button>
-
-    <div id="list"></div>
-
-    <div id="resultArea" style="display:none;">
-        <div id="capture" class="res-table">
-            <div style="background:var(--primary); color:white; padding:15px; text-align:center; font-weight:bold;">RACE RESULTS - ELMAKKAOUY</div>
-            <div id="rankings"></div>
-        </div>
-        <button class="btn-main" onclick="saveImage()" style="background:#334155;">SAVE AS IMAGE 📸</button>
-    </div>
+    <table class="racer-table" id="racerTable">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Competitor Name</th>
+                <th>Distance (m)</th>
+                <th>KM</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
 </div>
 
 <script>
-    let racers = [];
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    let map, markers = [];
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
-    document.getElementById('relDate').value = new Date().toISOString().split('T')[0];
-
-    // 1. Weather Logic
-    async function fetchWeather() {
-        const c = document.getElementById('coords').value.split(',');
-        try {
-            const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${c[0].trim()}&lon=${c[1].trim()}&appid=bd5e378503939ddaee76f12ad7a97608&units=metric`);
-            const d = await res.json();
-            document.getElementById('w-speed').innerText = (d.wind.speed * 3.6).toFixed(1) + " km/h";
-            document.getElementById('w-temp').innerText = d.main.temp + "°C";
-            const dirs = ['N','NE','E','SE','S','SW','W','NW'];
-            document.getElementById('w-dir').innerText = dirs[Math.round(d.wind.deg/45)%8];
-        } catch(e) {}
+    function initMap() {
+        map = L.map('map', { zoomControl: false }).setView([33.4, -8], 8);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
     }
-    fetchWeather();
 
-    // 2. المحرك الشامل (قراءة النص الخام كما في النسخة الأولى)
-    document.getElementById('pdfFile').onchange = async (e) => {
-        const file = e.target.files[0];
-        document.getElementById('loader').style.display = 'block';
-        
+    async function processPDF(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        document.getElementById('status').innerText = "Processing...";
         const reader = new FileReader();
         reader.onload = async function() {
-            const pdf = await pdfjsLib.getDocument(new Uint8Array(this.result)).promise;
-            let fullText = "";
+            const typedArray = new Uint8Array(this.result);
+            const pdf = await pdfjsLib.getDocument(typedArray).promise;
+            let fullRawText = "";
+
             for (let i = 1; i <= pdf.numPages; i++) {
                 const page = await pdf.getPage(i);
                 const content = await page.getTextContent();
-                // نجمع النصوص بدون قيود الأعمدة لضمان القراءة
-                fullText += content.items.map(it => it.str).join(' ') + "\n";
+                fullRawText += content.items.map(s => s.str).join(' ') + "\n";
             }
-            
-            // البحث عن المسافات (أرقام من 5 إلى 7 خانات أو أرقام عشرية)
-            const regex = /(\d{2,3}\.\d{3,5})|(\d{5,7})/g;
-            const matches = [...fullText.matchAll(regex)];
-            
-            racers = [];
-            matches.forEach((m, i) => {
-                let dist = parseFloat(m[0]);
-                if (dist > 1000) dist = dist / 1000; // تحويل الأمتار لكيلومترات
-
-                // محاولة إيجاد الاسم (النص الذي يسبق الرقم)
-                const startPos = Math.max(0, m.index - 50);
-                const snippet = fullText.substring(startPos, m.index);
-                const name = snippet.split(' ').filter(w => w.length > 3 && isNaN(w)).pop() || "Racer " + (i+1);
-
-                if (dist > 10) { // استبعاد الأرقام التي ليست مسافات سباق
-                    racers.push({ name: name.trim(), dist: dist.toFixed(3) });
-                }
-            });
-
-            renderList();
-            document.getElementById('loader').style.display = 'none';
+            extractMetricData(fullRawText);
         };
         reader.readAsArrayBuffer(file);
-    };
-
-    function renderList() {
-        const list = document.getElementById('list');
-        list.innerHTML = racers.map((r, i) => `
-            <div class="racer-item">
-                <div style="display:flex; justify-content:space-between;">
-                    <b>${r.name}</b>
-                    <span style="color:var(--accent)">${r.dist} Km</span>
-                </div>
-                <div class="time-group">
-                    <input type="date" class="d-${i}" value="${document.getElementById('relDate').value}">
-                    <input type="number" class="h-${i}" value="12">:<input type="number" class="m-${i}" value="00">:<input type="number" class="s-${i}" value="00">
-                </div>
-            </div>
-        `).join('');
     }
 
-    function calculateAll() {
-        const relDate = document.getElementById('relDate').value;
-        const relH = document.getElementById('relH').value;
-        const relM = document.getElementById('relM').value;
-        const relS = document.getElementById('relS').value;
-        const release = new Date(`${relDate}T${pad(relH)}:${pad(relM)}:${pad(relS)}`);
+    function extractMetricData(text) {
+        const start = document.getElementById('startCoord').value.split(',').map(Number);
+        const end = document.getElementById('endCoord').value.split(',').map(Number);
+        const tbody = document.querySelector('#racerTable tbody');
+        
+        tbody.innerHTML = "";
+        markers.forEach(m => map.removeLayer(m));
+        markers = [];
 
-        let results = [];
-        racers.forEach((r, i) => {
-            const d = document.querySelector(`.d-${i}`).value;
-            const h = document.querySelector(`.h-${i}`).value;
-            const m = document.querySelector(`.m-${i}`).value;
-            const s = document.querySelector(`.s-${i}`).value;
-            const arrival = new Date(`${d}T${pad(h)}:${pad(m)}:${pad(s)}`);
+        // البحث عن الأرقام الكبيرة (المسافات بالأمتار مثل 216650 أو 34003)
+        // Regex: يبحث عن أرقام مكونة من 5 إلى 7 خانات متتالية
+        const metricRegex = /\b(\d{5,7})\b/g;
+        const matches = [...text.matchAll(metricRegex)];
+        
+        let validCount = 0;
+        matches.forEach((match, index) => {
+            const rawDistance = parseInt(match[0]);
             
-            let seconds = (arrival - release) / 1000;
-            if (seconds > 0) {
-                let speed = (parseFloat(r.dist) * 1000) / (seconds / 60);
-                results.push({ ...r, speed, arrivalTime: `${pad(h)}:${pad(m)}:${pad(s)}` });
+            // تحويل المسافة من أمتار إلى كيلومترات (قسمة على 1000)
+            const distInKm = rawDistance / 1000;
+
+            // استخراج الاسم: نأخذ النص الذي يسبق هذا الرقم بمسافة معينة
+            const pos = match.index;
+            const snippet = text.substring(pos - 40, pos).trim();
+            const name = snippet.split('\n').pop().replace(/[0-9]/g, '').trim() || "Racer " + (index + 1);
+
+            if (distInKm > 1) { // تجاهل الأرقام الصغيرة التي لا يمكن أن تكون مسافة سباق
+                validCount++;
+                
+                // حساب الموقع
+                const totalFlightDist = L.latLng(start).distanceTo(L.latLng(end)) / 1000;
+                const ratio = Math.min(distInKm / totalFlightDist, 1);
+                const lat = start[0] + (end[0] - start[0]) * ratio;
+                const lng = start[1] + (end[1] - start[1]) * ratio;
+
+                // خريطة
+                const m = L.marker([lat, lng], {
+                    icon: L.divIcon({ html: '🕊️', className: 'pigeon-marker', iconSize: [25, 25] })
+                }).addTo(map).bindPopup(`${name}: ${distInKm} KM`);
+                markers.push(m);
+
+                // جدول
+                tbody.innerHTML += `<tr>
+                    <td>${validCount}</td>
+                    <td><b>${name}</b></td>
+                    <td>${rawDistance}</td>
+                    <td style="color:#3b82f6; font-weight:bold;">${distInKm.toFixed(3)} KM</td>
+                </tr>`;
             }
         });
 
-        results.sort((a,b) => b.speed - a.speed);
-        
-        const rankings = document.getElementById('rankings');
-        rankings.innerHTML = results.map((r, i) => `
-            <div class="res-row">
-                <div><b>${i+1}. ${r.name}</b><br><small>${r.dist} Km | ${r.arrivalTime}</small></div>
-                <div style="text-align:right;"><b style="color:#16a34a">${r.speed.toFixed(3)}</b><br><small>m/min</small></div>
-            </div>
-        `).join('');
-        document.getElementById('resultArea').style.display = 'block';
+        document.getElementById('count').innerText = validCount;
+        document.getElementById('status').innerText = "Completed";
+        if(markers.length > 0) {
+            map.fitBounds(new L.featureGroup(markers).getBounds(), {padding:[40,40]});
+        }
     }
 
-    function pad(n) { return String(n).padStart(2, '0'); }
-    function saveImage() {
-        html2canvas(document.getElementById('capture')).then(canvas => {
-            const a = document.createElement('a');
-            a.download = 'Race_Results.png';
-            a.href = canvas.toDataURL();
-            a.click();
-        });
-    }
+    setInterval(() => {
+        document.getElementById('clock').innerText = new Date().toTimeString().split(' ')[0];
+    }, 1000);
+
+    initMap();
 </script>
 </body>
 </html>
