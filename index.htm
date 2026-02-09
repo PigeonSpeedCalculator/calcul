@@ -1,53 +1,49 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pigeon Radar Pro - BY ELMAKKAOUY</title>
+    <title>Pigeon Global Expert - ELMAKKAOUY</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
+    
     <style>
         :root { --primary: #3b82f6; --success: #22c55e; --bg: #0b0f19; --card: #1e293b; }
-        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; overflow-x: hidden; }
+        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; }
         
-        /* Header */
-        .header { position: sticky; top: 0; z-index: 1000; background: #161b2a; padding: 15px; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
+        .header { background: #161b2a; padding: 15px; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
         .container { max-width: 500px; margin: 0 auto; padding: 10px; }
         
-        /* Map Layout */
-        #map { height: 280px; width: 100%; border-radius: 20px; margin-bottom: 15px; border: 1px solid #334155; }
+        /* Radar Map */
+        #map { height: 260px; width: 100%; border-radius: 20px; margin-bottom: 15px; border: 1px solid #334155; }
 
         /* Stats Dashboard */
         .stats-panel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
-        .stat-item { background: var(--card); padding: 12px; border-radius: 15px; text-align: center; border: 1px solid #2d3748; }
-        .stat-item b { display: block; color: var(--primary); font-size: 1.1rem; }
-        .stat-item span { font-size: 10px; color: #94a3b8; text-transform: uppercase; }
+        .stat-item { background: var(--card); padding: 12px 5px; border-radius: 15px; text-align: center; border: 1px solid #2d3748; }
+        .stat-item b { display: block; color: var(--primary); font-size: 14px; }
+        .stat-item span { font-size: 9px; color: #94a3b8; text-transform: uppercase; }
 
-        /* Input Cards */
-        .card { background: var(--card); border-radius: 20px; padding: 15px; margin-bottom: 15px; border: 1px solid #334155; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        label { font-size: 11px; color: #94a3b8; font-weight: bold; display: block; margin-bottom: 5px; }
-        input { background: #0f172a; border: 1px solid #334155; color: white; padding: 12px; border-radius: 10px; width: 100%; box-sizing: border-box; margin-bottom: 10px; font-size: 15px; }
-        
-        .btn-action { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; font-size: 14px; }
-        .btn-track { background: var(--success); color: white; border: none; padding: 8px 15px; border-radius: 8px; font-weight: bold; font-size: 11px; }
+        /* Inputs */
+        .card { background: var(--card); border-radius: 20px; padding: 15px; margin-bottom: 12px; border: 1px solid #334155; }
+        input { background: #0b0f19; border: 1px solid #334155; color: white; padding: 10px; border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 8px; font-size: 14px; }
+        label { font-size: 10px; color: #94a3b8; font-weight: bold; margin-bottom: 4px; display: block; }
 
-        /* Racer Items */
-        .racer-card { border-left: 5px solid var(--primary); position: relative; overflow: hidden; }
-        .pigeon-icon { font-size: 24px; text-shadow: 0 0 10px white; }
-        
+        .btn-main { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; }
+        .btn-track { background: var(--success); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; }
+
+        /* Racer Card Styles */
+        .racer-card { border-left: 4px solid var(--primary); position: relative; }
         .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+        .delete-btn { position: absolute; top: 10px; right: 10px; color: #ef4444; cursor: pointer; font-weight: bold; }
         
-        .delete-btn { position: absolute; top: 10px; right: 10px; color: #ef4444; font-weight: bold; cursor: pointer; }
+        .pigeon-icon { font-size: 24px; text-shadow: 0 0 8px white; }
     </style>
 </head>
 <body>
 
 <header class="header">
-    <div style="font-weight: 900; letter-spacing: 1px;">ELMAKKAOUY <span style="color:var(--primary)">RADAR</span></div>
+    <div style="font-weight: 900;">ELMAKKAOUY <span style="color:var(--primary)">RADAR</span></div>
     <div id="liveClock" style="font-family: monospace; color: var(--primary);">00:00:00</div>
 </header>
 
@@ -55,38 +51,32 @@
     <div id="map"></div>
 
     <div class="stats-panel">
-        <div class="stat-item"><b id="s-total">0</b><span>Pigeons</span></div>
-        <div class="stat-item"><b id="s-wind">--</b><span>Wind km/h</span></div>
-        <div class="stat-item"><b id="s-best">--</b><span>Best m/m</span></div>
+        <div class="stat-item"><b id="stat-count">0</b><span>Pigeons</span></div>
+        <div class="stat-item"><b id="stat-wind">--</b><span>Wind km/h</span></div>
+        <div class="stat-item"><b id="stat-best">--</b><span>Best m/m</span></div>
     </div>
 
     <div class="card">
-        <label>🏁 RELEASE POINT (LAT / LNG)</label>
-        <div class="grid-2">
+        <label>🏁 RELEASE POINT (Lat / Lng)</label>
+        <div class="grid-3" style="grid-template-columns: 1fr 1fr 1fr;">
             <input type="text" id="relLat" value="33.2722" placeholder="Lat">
             <input type="text" id="relLng" value="-8.3732" placeholder="Lng">
+            <button onclick="updateWeather()" style="height:38px; background:#334155; color:white; border:none; border-radius:8px; font-size:10px;">Check Weather</button>
         </div>
-        
-        <label>⏰ RELEASE DATE & TIME</label>
+        <label>⏰ RELEASE TIME</label>
         <input type="datetime-local" id="relTime">
-
-        <button class="btn-action" onclick="addManualRacer()">+ ADD MANUAL RACER</button>
+        <button class="btn-main" onclick="addRacer()">+ ADD NEW RACER</button>
     </div>
 
     <div id="racersList"></div>
-
-    <div id="resultsArea" style="display:none;" class="card">
-        <h3 style="text-align:center; color:var(--success); margin-top:0;">🏆 Final Rankings</h3>
-        <div id="rankings"></div>
-        <button class="btn-action" style="background:#475569; margin-top:10px;" onclick="saveImg()">Save Result Image 📸</button>
-    </div>
 </div>
 
 <script>
-    let map, pigeonMarker, pathLine;
+    let map, marker, pathLine;
     let racers = [];
-    const API_KEY = '992e2b79f5e3386bda09d14ff4807f9d'; // OpenWeather API
+    const API_KEY = '992e2b79f5e3386bda09d14ff4807f9d';
 
+    // Initialize Map
     function init() {
         map = L.map('map', { zoomControl: false }).setView([33.27, -8.37], 7);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
@@ -100,47 +90,52 @@
         try {
             const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${API_KEY}&units=metric`);
             const data = await res.json();
-            document.getElementById('s-wind').innerText = (data.wind.speed * 3.6).toFixed(1);
-            return data.wind;
-        } catch(e) { return { speed: 0, deg: 0 }; }
+            document.getElementById('stat-wind').innerText = (data.wind.speed * 3.6).toFixed(1);
+        } catch(e) { document.getElementById('stat-wind').innerText = "0.0"; }
     }
 
-    // إضافة متسابق يدوي (Fixed Function)
-    function addManualRacer() {
-        const newRacer = {
+    function addRacer() {
+        const r = {
             id: Date.now(),
             name: "",
             dist: "",
             lat: "",
             lng: "",
-            arrivalTime: new Date().toISOString().slice(0, 16)
+            arrival: new Date().toISOString().slice(0, 16)
         };
-        racers.unshift(newRacer);
+        racers.unshift(r);
         renderList();
     }
 
     function renderList() {
-        const container = document.getElementById('racersList');
-        container.innerHTML = racers.map((r, i) => `
-            <div class="card racer-card">
+        const listDiv = document.getElementById('racersList');
+        listDiv.innerHTML = ""; // Clear
+        
+        racers.forEach((r, i) => {
+            const card = document.createElement('div');
+            card.className = "card racer-card";
+            card.innerHTML = `
                 <span class="delete-btn" onclick="removeRacer(${i})">×</span>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <input type="text" placeholder="Racer Name" oninput="racers[${i}].name=this.value" value="${r.name}" style="width:65%; margin:0;">
-                    <button class="btn-track" onclick="trackPigeon(${i})">TRACK 🕊️</button>
+                    <input type="text" placeholder="Racer Name" oninput="updateRacer(${i}, 'name', this.value)" value="${r.name}" style="width:65%; margin:0;">
+                    <button class="btn-track" onclick="startTracking(${i})">TRACK 🕊️</button>
                 </div>
-                
-                <label>Distance & Coordinates (Home)</label>
                 <div class="grid-3">
-                    <input type="number" placeholder="KM" oninput="racers[${i}].dist=this.value" value="${r.dist}">
-                    <input type="text" placeholder="Lat" oninput="racers[${i}].lat=this.value" value="${r.lat}">
-                    <input type="text" placeholder="Lng" oninput="racers[${i}].lng=this.value" value="${r.lng}">
+                    <div><label>Dist KM</label><input type="number" oninput="updateRacer(${i}, 'dist', this.value)" value="${r.dist}"></div>
+                    <div><label>Home Lat</label><input type="text" oninput="updateRacer(${i}, 'lat', this.value)" value="${r.lat}"></div>
+                    <div><label>Home Lng</label><input type="text" oninput="updateRacer(${i}, 'lng', this.value)" value="${r.lng}"></div>
                 </div>
+                <label>Arrival Time</label>
+                <input type="datetime-local" oninput="updateRacer(${i}, 'arrival', this.value)" value="${r.arrival}" style="margin:0;">
+            `;
+            listDiv.appendChild(card);
+        });
+        updateStats();
+    }
 
-                <label>Arrival Date & Time</label>
-                <input type="datetime-local" oninput="racers[${i}].arrivalTime=this.value" value="${r.arrivalTime}" style="margin:0;">
-            </div>
-        `).join('');
-        document.getElementById('s-total').innerText = racers.length;
+    function updateRacer(i, field, val) {
+        racers[i][field] = val;
+        updateStats();
     }
 
     function removeRacer(i) {
@@ -148,54 +143,62 @@
         renderList();
     }
 
-    async function trackPigeon(i) {
-        const r = racers[i];
-        if(!r.lat || !r.lng || !r.dist) return alert("Please fill KM and Coordinates!");
+    function updateStats() {
+        document.getElementById('stat-count').innerText = racers.length;
+        let bestSpeed = 0;
+        const release = new Date(document.getElementById('relTime').value);
 
-        const startLat = parseFloat(document.getElementById('relLat').value);
-        const startLng = parseFloat(document.getElementById('relLng').value);
-        const endLat = parseFloat(r.lat);
-        const endLng = parseFloat(r.lng);
+        racers.forEach(r => {
+            if(r.dist && r.arrival) {
+                const arrival = new Date(r.arrival);
+                const diffMins = (arrival - release) / (1000 * 60);
+                if(diffMins > 0) {
+                    const speed = (r.dist * 1000) / diffMins;
+                    if(speed > bestSpeed) bestSpeed = speed;
+                }
+            }
+        });
+        document.getElementById('stat-best').innerText = bestSpeed > 0 ? bestSpeed.toFixed(2) : "--";
+    }
+
+    function startTracking(i) {
+        const r = racers[i];
+        if(!r.lat || !r.lng || !r.dist) return alert("Please fill KM and Lat/Lng!");
+
+        const sLat = parseFloat(document.getElementById('relLat').value);
+        const sLng = parseFloat(document.getElementById('relLng').value);
+        const eLat = parseFloat(r.lat);
+        const eLng = parseFloat(r.lng);
         const relTime = new Date(document.getElementById('relTime').value);
 
-        const wind = await updateWeather();
-        let speedFactor = 1.0; 
-        if(wind && wind.deg > 180) speedFactor = 0.85; // Wind Resistance
-
-        if(pigeonMarker) map.removeLayer(pigeonMarker);
+        if(marker) map.removeLayer(marker);
         if(pathLine) map.removeLayer(pathLine);
 
-        pathLine = L.polyline([[startLat, startLng], [endLat, endLng]], {color: '#3b82f6', weight: 3, dashArray: '5, 10'}).addTo(map);
-        pigeonMarker = L.marker([startLat, startLng], {
+        pathLine = L.polyline([[sLat, sLng], [eLat, eLng]], {color: '#3b82f6', weight: 3, dashArray: '10, 10'}).addTo(map);
+        marker = L.marker([sLat, sLng], {
             icon: L.divIcon({ html: '<div class="pigeon-icon">🕊️</div>', className: 'p-idx' })
         }).addTo(map);
 
         map.fitBounds(pathLine.getBounds(), {padding: [50, 50]});
 
-        const sim = setInterval(() => {
+        const timer = setInterval(() => {
             const now = new Date();
             const elapsedHours = (now - relTime) / (1000 * 60 * 60);
             if(elapsedHours < 0) return;
 
-            const currentSpeed = 65 * speedFactor; // Base speed 65km/h
-            const covered = elapsedHours * currentSpeed;
-            const progress = Math.min(covered / r.dist, 1);
-
-            const curLat = startLat + (endLat - startLat) * progress;
-            const curLng = startLng + (endLng - startLng) * progress;
-
-            pigeonMarker.setLatLng([curLat, curLng]);
-            if(progress >= 1) {
-                clearInterval(sim);
-                alert(r.name + " reached Home!");
-            }
+            const speed = 60; // 60 km/h
+            const progress = Math.min((elapsedHours * speed) / r.dist, 1);
+            
+            const curLat = sLat + (eLat - sLat) * progress;
+            const curLng = sLng + (eLng - sLng) * progress;
+            
+            marker.setLatLng([curLat, curLng]);
+            if(progress >= 1) clearInterval(timer);
         }, 1000);
     }
 
-    // Digital Clock
     setInterval(() => {
-        const now = new Date();
-        document.getElementById('liveClock').innerText = now.toTimeString().split(' ')[0];
+        document.getElementById('liveClock').innerText = new Date().toTimeString().split(' ')[0];
     }, 1000);
 
     init();
