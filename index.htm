@@ -3,81 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pigeon Global Radar - BY ELMAKKAOUY</title>
+    <title>Pigeon Radar Pro - BY ELMAKKAOUY</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
-        :root { --primary: #3b82f6; --success: #22c55e; --bg: #0f172a; --card: #1e293b; }
-        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; }
+        :root { --primary: #3b82f6; --success: #22c55e; --bg: #0b0f19; --card: #1e293b; }
+        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; overflow-x: hidden; }
         
-        .header { position: sticky; top: 0; z-index: 1000; background: var(--card); padding: 15px; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
+        /* Header */
+        .header { position: sticky; top: 0; z-index: 1000; background: #161b2a; padding: 15px; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
         .container { max-width: 500px; margin: 0 auto; padding: 10px; }
         
-        #map { height: 250px; width: 100%; border-radius: 20px; margin-bottom: 15px; border: 1px solid #334155; }
+        /* Map Layout */
+        #map { height: 280px; width: 100%; border-radius: 20px; margin-bottom: 15px; border: 1px solid #334155; }
 
-        .card { background: var(--card); border-radius: 20px; padding: 15px; margin-bottom: 15px; border: 1px solid #334155; }
-        input, select { background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
+        /* Stats Dashboard */
+        .stats-panel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
+        .stat-item { background: var(--card); padding: 12px; border-radius: 15px; text-align: center; border: 1px solid #2d3748; }
+        .stat-item b { display: block; color: var(--primary); font-size: 1.1rem; }
+        .stat-item span { font-size: 10px; color: #94a3b8; text-transform: uppercase; }
+
+        /* Input Cards */
+        .card { background: var(--card); border-radius: 20px; padding: 15px; margin-bottom: 15px; border: 1px solid #334155; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        label { font-size: 11px; color: #94a3b8; font-weight: bold; display: block; margin-bottom: 5px; }
+        input { background: #0f172a; border: 1px solid #334155; color: white; padding: 12px; border-radius: 10px; width: 100%; box-sizing: border-box; margin-bottom: 10px; font-size: 15px; }
         
-        .racer-box { border-left: 4px solid var(--primary); padding-left: 10px; margin-bottom: 10px; position: relative; }
-        .btn-action { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; }
-        
-        .stats-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
-        .stat { background: #1e293b; padding: 10px; border-radius: 12px; text-align: center; font-size: 0.8rem; }
-        .stat b { display: block; color: var(--primary); font-size: 1rem; }
+        .btn-action { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .btn-track { background: var(--success); color: white; border: none; padding: 8px 15px; border-radius: 8px; font-weight: bold; font-size: 11px; }
 
-        .time-manual { display: flex; gap: 5px; }
-        .time-manual input { text-align: center; }
-
+        /* Racer Items */
+        .racer-card { border-left: 5px solid var(--primary); position: relative; overflow: hidden; }
         .pigeon-icon { font-size: 24px; text-shadow: 0 0 10px white; }
+        
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+        
+        .delete-btn { position: absolute; top: 10px; right: 10px; color: #ef4444; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <header class="header">
-    <div style="font-weight:900;">ELMAKKAOUY <span style="color:var(--primary)">PRO</span></div>
-    <div id="windLabel" style="font-size: 0.7rem; color: #94a3b8;">Wind: Loading...</div>
+    <div style="font-weight: 900; letter-spacing: 1px;">ELMAKKAOUY <span style="color:var(--primary)">RADAR</span></div>
+    <div id="liveClock" style="font-family: monospace; color: var(--primary);">00:00:00</div>
 </header>
 
 <div class="container">
     <div id="map"></div>
 
-    <div class="stats-bar">
-        <div class="stat"><b id="s-count">0</b>Pigeons</div>
-        <div class="stat"><b id="s-wind">--</b>Wind km/h</div>
-        <div class="stat"><b id="s-speed">--</b>Avg Speed</div>
+    <div class="stats-panel">
+        <div class="stat-item"><b id="s-total">0</b><span>Pigeons</span></div>
+        <div class="stat-item"><b id="s-wind">--</b><span>Wind km/h</span></div>
+        <div class="stat-item"><b id="s-best">--</b><span>Best m/m</span></div>
     </div>
 
     <div class="card">
-        <label style="font-size: 11px;">1. RELEASE COORDINATES (Lat/Lng)</label>
-        <div style="display:flex; gap:5px;">
+        <label>🏁 RELEASE POINT (LAT / LNG)</label>
+        <div class="grid-2">
             <input type="text" id="relLat" value="33.2722" placeholder="Lat">
             <input type="text" id="relLng" value="-8.3732" placeholder="Lng">
         </div>
         
-        <label style="font-size: 11px;">2. RELEASE TIME</label>
+        <label>⏰ RELEASE DATE & TIME</label>
         <input type="datetime-local" id="relTime">
 
         <button class="btn-action" onclick="addManualRacer()">+ ADD MANUAL RACER</button>
-        <input type="file" id="pdfFile" accept=".pdf" style="margin-top:10px; font-size:10px;">
     </div>
 
     <div id="racersList"></div>
 
     <div id="resultsArea" style="display:none;" class="card">
-        <h3 style="text-align:center; color:var(--success);">Official Rankings</h3>
+        <h3 style="text-align:center; color:var(--success); margin-top:0;">🏆 Final Rankings</h3>
         <div id="rankings"></div>
-        <button class="btn-action" style="background:#475569; margin-top:10px;" onclick="saveResult()">SAVE IMAGE 📸</button>
+        <button class="btn-action" style="background:#475569; margin-top:10px;" onclick="saveImg()">Save Result Image 📸</button>
     </div>
 </div>
 
 <script>
     let map, pigeonMarker, pathLine;
     let racers = [];
-    const API_KEY = '992e2b79f5e3386bda09d14ff4807f9d';
+    const API_KEY = '992e2b79f5e3386bda09d14ff4807f9d'; // OpenWeather API
 
     function init() {
         map = L.map('map', { zoomControl: false }).setView([33.27, -8.37], 7);
@@ -93,40 +101,56 @@
             const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${API_KEY}&units=metric`);
             const data = await res.json();
             document.getElementById('s-wind').innerText = (data.wind.speed * 3.6).toFixed(1);
-            document.getElementById('windLabel').innerText = `Wind: ${(data.wind.speed * 3.6).toFixed(1)} km/h (${data.wind.deg}°)`;
             return data.wind;
-        } catch(e) { return null; }
+        } catch(e) { return { speed: 0, deg: 0 }; }
     }
 
+    // إضافة متسابق يدوي (Fixed Function)
     function addManualRacer() {
-        racers.unshift({ name: "", dist: 0, lat: "", lng: "", manual: true });
+        const newRacer = {
+            id: Date.now(),
+            name: "",
+            dist: "",
+            lat: "",
+            lng: "",
+            arrivalTime: new Date().toISOString().slice(0, 16)
+        };
+        racers.unshift(newRacer);
         renderList();
     }
 
     function renderList() {
         const container = document.getElementById('racersList');
         container.innerHTML = racers.map((r, i) => `
-            <div class="card racer-box">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <input type="text" placeholder="Racer Name" oninput="racers[${i}].name=this.value" value="${r.name}" style="width:60%">
-                    <button onclick="startFlight(${i})" style="background:var(--success); color:white; border:none; padding:5px 10px; border-radius:5px; font-size:10px;">TRACK 🕊️</button>
+            <div class="card racer-card">
+                <span class="delete-btn" onclick="removeRacer(${i})">×</span>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <input type="text" placeholder="Racer Name" oninput="racers[${i}].name=this.value" value="${r.name}" style="width:65%; margin:0;">
+                    <button class="btn-track" onclick="trackPigeon(${i})">TRACK 🕊️</button>
                 </div>
-                <div style="display:flex; gap:5px;">
-                    <input type="number" placeholder="Distance KM" oninput="racers[${i}].dist=this.value" value="${r.dist}">
-                    <input type="text" placeholder="Home Lat" oninput="racers[${i}].lat=this.value" value="${r.lat}">
-                    <input type="text" placeholder="Home Lng" oninput="racers[${i}].lng=this.value" value="${r.lng}">
+                
+                <label>Distance & Coordinates (Home)</label>
+                <div class="grid-3">
+                    <input type="number" placeholder="KM" oninput="racers[${i}].dist=this.value" value="${r.dist}">
+                    <input type="text" placeholder="Lat" oninput="racers[${i}].lat=this.value" value="${r.lat}">
+                    <input type="text" placeholder="Lng" oninput="racers[${i}].lng=this.value" value="${r.lng}">
                 </div>
-                <div class="time-manual">
-                    <input type="datetime-local" class="time-in-${i}" value="${new Date().toISOString().slice(0, 16)}">
-                </div>
+
+                <label>Arrival Date & Time</label>
+                <input type="datetime-local" oninput="racers[${i}].arrivalTime=this.value" value="${r.arrivalTime}" style="margin:0;">
             </div>
         `).join('');
-        document.getElementById('s-count').innerText = racers.length;
+        document.getElementById('s-total').innerText = racers.length;
     }
 
-    async function startFlight(i) {
+    function removeRacer(i) {
+        racers.splice(i, 1);
+        renderList();
+    }
+
+    async function trackPigeon(i) {
         const r = racers[i];
-        if(!r.lat || !r.lng) return alert("Please enter Home Lat/Lng!");
+        if(!r.lat || !r.lng || !r.dist) return alert("Please fill KM and Coordinates!");
 
         const startLat = parseFloat(document.getElementById('relLat').value);
         const startLng = parseFloat(document.getElementById('relLng').value);
@@ -136,24 +160,24 @@
 
         const wind = await updateWeather();
         let speedFactor = 1.0; 
-        if(wind && wind.deg > 180) speedFactor = 0.8; // مثال: رياح عكسية
+        if(wind && wind.deg > 180) speedFactor = 0.85; // Wind Resistance
 
         if(pigeonMarker) map.removeLayer(pigeonMarker);
         if(pathLine) map.removeLayer(pathLine);
 
-        pathLine = L.polyline([[startLat, startLng], [endLat, endLng]], {color: '#3b82f6', weight: 2, dashArray: '5, 10'}).addTo(map);
+        pathLine = L.polyline([[startLat, startLng], [endLat, endLng]], {color: '#3b82f6', weight: 3, dashArray: '5, 10'}).addTo(map);
         pigeonMarker = L.marker([startLat, startLng], {
             icon: L.divIcon({ html: '<div class="pigeon-icon">🕊️</div>', className: 'p-idx' })
         }).addTo(map);
 
-        map.fitBounds(pathLine.getBounds(), {padding: [30, 30]});
+        map.fitBounds(pathLine.getBounds(), {padding: [50, 50]});
 
         const sim = setInterval(() => {
             const now = new Date();
             const elapsedHours = (now - relTime) / (1000 * 60 * 60);
             if(elapsedHours < 0) return;
 
-            const currentSpeed = 60 * speedFactor; // 60km/h default
+            const currentSpeed = 65 * speedFactor; // Base speed 65km/h
             const covered = elapsedHours * currentSpeed;
             const progress = Math.min(covered / r.dist, 1);
 
@@ -161,19 +185,18 @@
             const curLng = startLng + (endLng - startLng) * progress;
 
             pigeonMarker.setLatLng([curLat, curLng]);
-            if(progress >= 1) clearInterval(sim);
+            if(progress >= 1) {
+                clearInterval(sim);
+                alert(r.name + " reached Home!");
+            }
         }, 1000);
     }
 
-    // PDF & Save Logic (إكمال لما سبق)
-    function saveResult() {
-        html2canvas(document.getElementById('resultsArea')).then(canvas => {
-            const a = document.createElement('a');
-            a.download = 'ELMAKKAOUY_FINAL.png';
-            a.href = canvas.toDataURL();
-            a.click();
-        });
-    }
+    // Digital Clock
+    setInterval(() => {
+        const now = new Date();
+        document.getElementById('liveClock').innerText = now.toTimeString().split(' ')[0];
+    }, 1000);
 
     init();
 </script>
