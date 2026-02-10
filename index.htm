@@ -3,256 +3,241 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ELMAKKAOUY RADAR PRO</title>
+    <title>ELMAKKAOUY RADAR PRO - MANUAL SMART</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
-        :root { --primary: #00d4ff; --danger: #ff4d4d; --bg: #050a14; --card: #0f172a; --text: #e2e8f0; }
-        body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Segoe UI', Roboto, sans-serif; }
+        :root { --primary: #00d4ff; --bg: #050a14; --card: #111827; }
+        body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; direction: ltr; }
+        .app-container { display: grid; grid-template-columns: 350px 1fr; height: 100vh; }
+        @media (max-width: 800px) { .app-container { grid-template-columns: 1fr; } }
+
+        /* Sidebar */
+        .sidebar { background: var(--card); padding: 20px; border-right: 2px solid #1e293b; overflow-y: auto; }
+        .input-box { background: #1f2937; padding: 12px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #374151; }
+        label { display: block; font-size: 11px; color: var(--primary); margin-bottom: 5px; font-weight: bold; }
+        input, select { background: transparent; border: none; color: white; width: 100%; outline: none; font-size: 14px; }
         
-        /* Dashboard Layout */
-        .app-grid { display: grid; grid-template-columns: 1fr 350px; height: 100vh; }
-        @media (max-width: 900px) { .app-grid { grid-template-columns: 1fr; } }
+        /* Auto-complete suggestions */
+        .suggestions { background: #374151; border-radius: 0 0 10px 10px; position: absolute; width: 310px; z-index: 1000; max-height: 150px; overflow-y: auto; }
+        .suggestion-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #4b5563; }
+        .suggestion-item:hover { background: var(--primary); color: #000; }
 
-        /* Left Section: Map & Results */
-        .main-view { position: relative; overflow-y: auto; padding: 20px; border-right: 1px solid #1e293b; }
-        #map { height: 400px; border-radius: 15px; border: 1px solid var(--primary); margin-bottom: 20px; box-shadow: 0 0 20px rgba(0, 212, 255, 0.2); }
-
-        /* Right Section: Controls */
-        .sidebar { background: var(--card); padding: 20px; display: flex; flex-direction: column; gap: 15px; border-left: 2px solid #1e293b; }
+        /* Map & Results */
+        .main-content { padding: 20px; overflow-y: auto; }
+        #map { height: 300px; border-radius: 15px; border: 1px solid var(--primary); margin-bottom: 20px; }
         
-        /* Weather Widget */
-        .weather-card { background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--primary); padding: 15px; border-radius: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .w-box { text-align: center; }
-        .w-box span { font-size: 10px; color: var(--primary); text-transform: uppercase; }
-        .w-box div { font-weight: bold; font-size: 1.1rem; }
+        .weather-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .w-stat { background: #111827; padding: 10px; border-radius: 10px; text-align: center; border: 1px solid #1e293b; }
+        .w-stat small { display: block; font-size: 10px; color: #94a3b8; }
+        .w-stat b { color: var(--primary); font-size: 1.1rem; }
 
-        /* Inputs */
-        .input-group { background: #1e293b; padding: 10px; border-radius: 8px; border: 1px solid #334155; }
-        label { display: block; font-size: 11px; margin-bottom: 5px; color: #94a3b8; }
-        input { background: transparent; border: none; color: white; width: 100%; font-size: 14px; outline: none; }
+        .btn { padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
+        .btn-add { background: var(--primary); color: #000; }
+        .btn-calc { background: #10b981; color: white; }
+
+        .racer-row { background: #1e293b; padding: 15px; border-radius: 10px; margin-bottom: 10px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; align-items: center; }
         
-        /* Buttons */
-        .btn { padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; width: 100%; }
-        .btn-upload { background: var(--primary); color: #000; }
-        .btn-calc { background: #10b981; color: white; font-size: 1.1rem; margin-top: 10px; }
-        .btn-save { background: #475569; color: white; margin-top: 20px; }
-
-        /* Table */
-        .results-container { margin-top: 20px; background: #fff; color: #000; border-radius: 12px; overflow: hidden; display: none; }
-        .res-table { width: 100%; border-collapse: collapse; }
-        .res-table th { background: #1e293b; color: white; padding: 12px; text-align: left; }
-        .res-table td { padding: 10px; border-bottom: 1px solid #eee; font-size: 13px; }
-        .speed-badge { background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 6px; font-weight: 900; }
-
-        /* Racer Item */
-        .racer-card { background: #1e293b; padding: 12px; border-radius: 10px; margin-bottom: 10px; border-left: 4px solid var(--primary); }
-        .time-inputs { display: flex; gap: 5px; margin-top: 8px; }
-        .time-inputs input { background: #0f172a; border: 1px solid #334155; padding: 5px; border-radius: 4px; text-align: center; }
+        #captureArea { background: white; color: black; border-radius: 15px; padding: 0; overflow: hidden; display: none; margin-top: 20px; }
+        .final-table { width: 100%; border-collapse: collapse; }
+        .final-table th { background: #111827; color: white; padding: 12px; }
+        .final-table td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; }
     </style>
 </head>
 <body>
 
-<div class="app-grid">
-    <div class="main-view">
-        <div id="map"></div>
+<div class="app-container">
+    <div class="sidebar">
+        <h2 style="color:var(--primary); text-align:center;">RADAR PRO 2026</h2>
         
-        <div id="resultsTableWrapper" class="results-container">
-            <div id="captureArea">
-                <div style="background:#0f172a; color:#00d4ff; padding:15px; text-align:center; font-weight:900; font-size:1.4rem;">
-                    ELMAKKAOUY RADAR PRO - OFFICIAL RESULTS
-                </div>
-                <table class="res-table" id="finalTable">
-                    <thead>
-                        <tr>
-                            <th>POS</th>
-                            <th>NAME</th>
-                            <th>DISTANCE</th>
-                            <th>ARRIVAL</th>
-                            <th>SPEED (m/m)</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
+        <div class="input-box">
+            <label>📍 RELEASE COORD (Lat, Lng)</label>
+            <input type="text" id="startCoord" value="33.2722, -8.3732" onchange="updateStart()">
         </div>
+
+        <div class="input-box" style="position:relative;">
+            <label>🏁 ARRIVAL CITY (SMART SEARCH)</label>
+            <input type="text" id="cityInput" placeholder="Type city name..." oninput="searchCity(this.value)">
+            <div id="suggestBox" class="suggestions"></div>
+        </div>
+
+        <div class="input-box">
+            <label>⏰ RELEASE DATE & TIME</label>
+            <input type="datetime-local" id="startTime">
+        </div>
+
+        <hr style="border: 0.5px solid #1e293b; margin: 20px 0;">
+        
+        <h3 style="font-size: 14px;">Add Competitors</h3>
+        <div class="input-box">
+            <label>RACER NAME</label>
+            <input type="text" id="racerName" placeholder="Enter name">
+        </div>
+        <button class="btn btn-add" onclick="addRacer()">+ ADD TO LIST</button>
+        
+        <div id="racersList" style="margin-top: 20px;"></div>
+        
+        <button class="btn btn-calc" onclick="calculateFinal()">🏆 RUN CALCULATION</button>
+        <button class="btn" style="background:#475569; color:white;" onclick="downloadRes()">📸 SAVE IMAGE</button>
     </div>
 
-    <div class="sidebar">
-        <div style="text-align: center; border-bottom: 1px solid #334155; padding-bottom: 10px;">
-            <h2 style="margin:0; color:var(--primary);">RADAR PRO <small style="font-size:10px; color:white;">V2.0</small></h2>
+    <div class="main-content">
+        <div id="map"></div>
+        
+        <div class="weather-grid">
+            <div class="w-stat"><small>WIND</small><b id="w-speed">--</b></div>
+            <div class="w-stat"><small>DIRECTION</small><b id="w-dir">--</b></div>
+            <div class="w-stat"><small>TEMP</small><b id="w-temp">--</b></div>
         </div>
 
-        <div class="weather-card" id="weatherBox">
-            <div class="w-box"><span>Wind</span><div id="wind-v">--</div></div>
-            <div class="w-box"><span>Dir</span><div id="wind-d">--</div></div>
-            <div class="w-box"><span>Temp</span><div id="temp-v">--</div></div>
-            <div class="w-box"><span>Status</span><div style="color:#10b981">LIVE</div></div>
-        </div>
-
-        <div class="input-group">
-            <label>📍 RELEASE COORDINATES</label>
-            <input type="text" id="coords" value="33.2722, -8.3732" onchange="initApp()">
-        </div>
-
-        <div class="input-group">
-            <label>🏁 RELEASE TIME (DATE & TIME)</label>
-            <input type="datetime-local" id="releaseFullTime">
-        </div>
-
-        <button class="btn btn-upload" onclick="document.getElementById('pdfIn').click()">📁 IMPORT RACE PDF</button>
-        <input type="file" id="pdfIn" hidden accept=".pdf">
-
-        <div id="racersList" style="flex-grow: 1; overflow-y: auto; max-height: 300px; padding-right: 5px;">
+        <div id="captureArea">
+            <div style="background:#111827; color:#00d4ff; padding:20px; text-align:center;">
+                <h2 style="margin:0;">ELMAKKAOUY RADAR OFFICIAL</h2>
+                <small id="raceInfo"></small>
             </div>
-
-        <button class="btn btn-calc" onclick="calculateResults()">🏆 CALCULATE SPEEDS</button>
-        <button class="btn btn-save" onclick="exportImage()">📸 SAVE AS IMAGE</button>
+            <table class="final-table" id="resTable">
+                <thead>
+                    <tr>
+                        <th>POS</th>
+                        <th>NAME</th>
+                        <th>DISTANCE</th>
+                        <th>ARRIVAL</th>
+                        <th>SPEED (m/m)</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 <script>
     let map, startMarker, racers = [];
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    let destinationCoord = [33.5731, -7.5898]; // Default: Casablanca
 
-    // 1. Initialization
-    function initApp() {
-        const c = document.getElementById('coords').value.split(',');
-        const lat = parseFloat(c[0]), lng = parseFloat(c[1]);
+    // 1. Initialize Map
+    window.onload = () => {
+        map = L.map('map', { zoomControl: false }).setView([33.2722, -8.3732], 7);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+        startMarker = L.marker([33.2722, -8.3732]).addTo(map).bindPopup("Release");
+        
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('startTime').value = now.toISOString().slice(0,16);
+        updateStart();
+    };
 
-        if (!map) {
-            map = L.map('map', { zoomControl: false }).setView([lat, lng], 8);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-            startMarker = L.marker([lat, lng]).addTo(map).bindPopup("Release Point");
-        } else {
-            map.setView([lat, lng]);
-            startMarker.setLatLng([lat, lng]);
-        }
-        fetchWeather(lat, lng);
+    // 2. Smart City Search (Using OpenStreetMap Nominatim)
+    async function searchCity(query) {
+        if (query.length < 3) return;
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=5`);
+            const data = await res.json();
+            const box = document.getElementById('suggestBox');
+            box.innerHTML = data.map(item => `
+                <div class="suggestion-item" onclick="selectCity('${item.display_name}', ${item.lat}, ${item.lon})">
+                    ${item.display_name}
+                </div>
+            `).join('');
+        } catch(e) {}
     }
 
-    // 2. Weather Engine
-    async function fetchWeather(lat, lng) {
+    function selectCity(name, lat, lon) {
+        document.getElementById('cityInput').value = name.split(',')[0];
+        document.getElementById('suggestBox').innerHTML = '';
+        destinationCoord = [lat, lon];
+        L.marker([lat, lon], {icon: L.divIcon({html:'🏁', className:''})}).addTo(map);
+        map.fitBounds([startMarker.getLatLng(), [lat, lon]], {padding: [50,50]});
+    }
+
+    // 3. Weather Tracking
+    async function updateStart() {
+        const c = document.getElementById('startCoord').value.split(',');
+        const lat = parseFloat(c[0]), lng = parseFloat(c[1]);
+        startMarker.setLatLng([lat, lng]);
+        map.setView([lat, lng]);
+
         try {
             const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=992e2b79f5e3386bda09d14ff4807f9d&units=metric`);
             const d = await res.json();
-            document.getElementById('wind-v').innerText = (d.wind.speed * 3.6).toFixed(1) + " km/h";
-            document.getElementById('temp-v').innerText = d.main.temp + "°C";
+            document.getElementById('w-speed').innerText = (d.wind.speed * 3.6).toFixed(1) + " km/h";
+            document.getElementById('w-temp').innerText = d.main.temp + "°C";
             const dirs = ['N','NE','E','SE','S','SW','W','NW'];
-            document.getElementById('wind-d').innerText = dirs[Math.round(d.wind.deg/45)%8];
-        } catch(e) { console.error("Weather failed"); }
+            document.getElementById('w-dir').innerText = dirs[Math.round(d.wind.deg/45)%8];
+        } catch(e) {}
     }
 
-    // 3. Smart PDF Extraction (The core you need)
-    document.getElementById('pdfIn').onchange = async (e) => {
-        const file = e.target.files[0];
-        const reader = new FileReader();
-        reader.onload = async function() {
-            const pdf = await pdfjsLib.getDocument(new Uint8Array(this.result)).promise;
-            let foundRacers = [];
+    // 4. Manual Entry Logic
+    function addRacer() {
+        const name = document.getElementById('racerName').value;
+        if (!name) return;
+        
+        // Calculate Distance using Haversine formula
+        const start = startMarker.getLatLng();
+        const dist = (map.distance(start, destinationCoord) / 1000).toFixed(3);
 
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const text = await page.getTextContent();
-                
-                // Group by Y coordinate (Lines)
-                let lines = {};
-                text.items.forEach(it => {
-                    let y = Math.round(it.transform[5]);
-                    if (!lines[y]) lines[y] = [];
-                    lines[y].push(it);
-                });
+        racers.push({ name, dist, h:12, m:0, s:0 });
+        renderRacers();
+        document.getElementById('racerName').value = '';
+    }
 
-                Object.keys(lines).sort((a,b) => b-a).forEach(y => {
-                    let row = lines[y].sort((a,b) => a.transform[4] - b.transform[4]);
-                    let rowText = row.map(it => it.str.trim()).join(' ');
-                    
-                    // Regex for Distance (e.g. 216.650 or 216650)
-                    let distMatch = rowText.match(/(\d{2,3}\.\d{3})|(\d{5,6})/);
-                    if (distMatch) {
-                        let distance = distMatch[0].includes('.') ? distMatch[0] : (parseFloat(distMatch[0])/1000).toFixed(3);
-                        let name = rowText.replace(distMatch[0], '').replace(/[0-9]/g, '').trim().split('  ')[0];
-                        if (name.length > 3) foundRacers.push({ name, dist: distance });
-                    }
-                });
-            }
-            racers = foundRacers;
-            updateRacerUI();
-        };
-        reader.readAsArrayBuffer(file);
-    };
-
-    function updateRacerUI() {
-        const container = document.getElementById('racersList');
-        container.innerHTML = racers.map((r, i) => `
-            <div class="racer-card">
-                <div style="display:flex; justify-content:space-between; font-weight:bold;">
-                    <span>${r.name}</span>
-                    <span style="color:var(--primary)">${r.dist} Km</span>
+    function renderRacers() {
+        document.getElementById('racersList').innerHTML = racers.map((r, i) => `
+            <div class="racer-row" style="background:#111827; border: 1px solid #1e293b; padding: 10px; border-radius: 8px;">
+                <div style="font-size:12px;"><b>${r.name}</b><br><small>${r.dist} Km</small></div>
+                <div style="display:flex; gap:2px;">
+                    <input type="number" value="${r.h}" onchange="racers[${i}].h=this.value" style="width:30px; background:#050a14; border:1px solid #334151;">:
+                    <input type="number" value="${r.m}" onchange="racers[${i}].m=this.value" style="width:30px; background:#050a14; border:1px solid #334151;">:
+                    <input type="number" value="${r.s}" onchange="racers[${i}].s=this.value" style="width:30px; background:#050a14; border:1px solid #334151;">
                 </div>
-                <div class="time-inputs">
-                    <input type="number" class="h-${i}" placeholder="HH" value="12">
-                    <input type="number" class="m-${i}" placeholder="MM" value="00">
-                    <input type="number" class="s-${i}" placeholder="SS" value="00">
-                </div>
+                <button onclick="racers.splice(${i},1); renderRacers()" style="background:none; border:none; color:#ff4d4d; cursor:pointer;">✖</button>
             </div>
         `).join('');
     }
 
-    // 4. Calculation Engine
-    function calculateResults() {
-        const relTime = new Date(document.getElementById('releaseFullTime').value);
-        if (isNaN(relTime)) return alert("Please set Release Date/Time");
-
+    // 5. Final Calculation
+    function calculateFinal() {
+        const startTime = new Date(document.getElementById('startTime').value);
         let finalData = [];
-        racers.forEach((r, i) => {
-            const h = document.querySelector(`.h-${i}`).value;
-            const m = document.querySelector(`.m-${i}`).value;
-            const s = document.querySelector(`.s-${i}`).value;
-            
-            let arrTime = new Date(relTime);
-            arrTime.setHours(h, m, s);
-            
-            let diffSec = (arrTime - relTime) / 1000;
-            if (diffSec > 0) {
-                let speed = (parseFloat(r.dist) * 1000) / (diffSec / 60);
-                finalData.push({ ...r, speed, arrival: `${h}:${m}:${s}` });
+
+        racers.forEach(r => {
+            let arrival = new Date(startTime);
+            arrival.setHours(r.h, r.m, r.s);
+            let diffMin = (arrival - startTime) / 60000;
+            if (diffMin > 0) {
+                let speed = (parseFloat(r.dist) * 1000) / diffMin;
+                finalData.push({ ...r, speed, arrTime: `${r.h}:${r.m}:${r.s}` });
             }
         });
 
         finalData.sort((a,b) => b.speed - a.speed);
         
-        const tbody = document.querySelector('#finalTable tbody');
+        const tbody = document.querySelector('#resTable tbody');
         tbody.innerHTML = finalData.map((d, i) => `
             <tr>
                 <td>${i+1}</td>
                 <td><b>${d.name}</b></td>
                 <td>${d.dist} Km</td>
-                <td>${d.arrival}</td>
-                <td><span class="speed-badge">${d.speed.toFixed(3)}</span></td>
+                <td>${d.arrTime}</td>
+                <td><b style="color:#16a34a">${d.speed.toFixed(3)}</b></td>
             </tr>
         `).join('');
-        document.getElementById('resultsTableWrapper').style.display = 'block';
+        
+        document.getElementById('raceInfo').innerText = `Release: ${startTime.toLocaleString()} | From: ${document.getElementById('startCoord').value} | To: ${document.getElementById('cityInput').value}`;
+        document.getElementById('captureArea').style.display = 'block';
     }
 
-    function exportImage() {
+    function downloadRes() {
         html2canvas(document.getElementById('captureArea')).then(canvas => {
             const a = document.createElement('a');
-            a.download = 'ELMAKKAOUY_RADAR_RESULTS.png';
+            a.download = 'RADAR_RESULT.png';
             a.href = canvas.toDataURL();
             a.click();
         });
     }
-
-    // Run on start
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    document.getElementById('releaseFullTime').value = now.toISOString().slice(0,16);
-    initApp();
 </script>
 </body>
 </html>
