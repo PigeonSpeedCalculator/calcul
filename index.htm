@@ -1,166 +1,84 @@
-<!DOCTYPE html>
-<html lang="ar">
-<head>
-<meta charset="UTF-8">
-<title>ELMAKKAOUY PIGEON RACE PRO</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+/* ================== START محسّن ================== */
+async function start(){
+    const s = startCoord.value.split(',');
+    const lat = parseFloat(s[0]);
+    const lon = parseFloat(s[1]);
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    await loadWeather(lat, lon);
 
-<style>
-body{margin:0;background:#0b0f19;color:#fff;font-family:Arial}
-#map{height:380px}
-.panel{padding:15px;background:#161b2a}
-input,button{
-width:100%;padding:10px;margin-top:8px;
-background:#0b0f19;border:1px solid #2d3343;
-color:#fff;border-radius:6px
+    const cityName = city.value || "Rabat";
+    const geo = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${cityName}&limit=1`
+    );
+    const g = await geo.json();
+    if(!g[0]) return alert("لم يتم العثور على المدينة");
+    dest = [parseFloat(g[0].lat), parseFloat(g[0].lon)];
+
+    const start = startMarker.getLatLng();
+    const end = L.latLng(dest[0], dest[1]);
+
+    // حساب المسافة
+    const distance = map.distance(start, end);
+    dist.innerText = distance.toFixed(2);
+
+    // حساب الاتجاه
+    const dir = bearing(start.lat, start.lng, end.lat, end.lng);
+
+    // حساب مكونات الرياح
+    const windAlong = windSpeed * Math.cos(rad(windDeg - dir));  // على طول المسار
+    const windCross = windSpeed * Math.sin(rad(windDeg - dir));  // عرضية
+
+    // السرعة الأرضية الحقيقية
+    const groundSpeed = Math.sqrt(Math.pow(AIR_SPEED + windAlong, 2) + Math.pow(windCross, 2));
+    speed.innerText = groundSpeed.toFixed(3);
+
+    // الزمن الكلي
+    const totalTime = distance / groundSpeed;
+    time.innerText = totalTime.toFixed(2);
+
+    /* ================== ANIMATION محسّن ================== */
+    if(pigeon) map.removeLayer(pigeon);
+    pigeon = L.marker(start, {icon:L.divIcon({html:'🕊️',iconSize:[30,30]})}).addTo(map);
+
+    let traveled = 0;
+    let last = performance.now();
+
+    // دالة لحساب نقطة على مسار الدائرة العظمى
+    function interpolateGreatCircle(p0, p1, fraction){
+        const lat1 = rad(p0.lat);
+        const lon1 = rad(p0.lng);
+        const lat2 = rad(p1.lat);
+        const lon2 = rad(p1.lng);
+
+        const d = 2 * Math.asin(Math.sqrt(
+            Math.pow(Math.sin((lat2 - lat1)/2),2) +
+            Math.cos(lat1) * Math.cos(lat2) * Math.pow(Math.sin((lon2 - lon1)/2),2)
+        ));
+
+        if(d === 0) return [p0.lat, p0.lng];
+
+        const A = Math.sin((1 - fraction) * d) / Math.sin(d);
+        const B = Math.sin(fraction * d) / Math.sin(d);
+
+        const x = A * Math.cos(lat1) * Math.cos(lon1) + B * Math.cos(lat2) * Math.cos(lon2);
+        const y = A * Math.cos(lat1) * Math.sin(lon1) + B * Math.cos(lat2) * Math.sin(lon2);
+        const z = A * Math.sin(lat1) + B * Math.sin(lat2);
+
+        const lat = Math.atan2(z, Math.sqrt(x*x + y*y));
+        const lon = Math.atan2(y, x);
+
+        return [lat * 180/Math.PI, lon * 180/Math.PI];
+    }
+
+    function animate(now){
+        const dt = (now - last)/1000;
+        last = now;
+        traveled += groundSpeed * dt;
+        let p = traveled / distance;
+        if(p >= 1){pigeon.setLatLng(end); return;}
+        const point = interpolateGreatCircle(start, end, p);
+        pigeon.setLatLng(point);
+        requestAnimationFrame(animate);
+    }
+    requestAnimationFrame(animate);
 }
-button{background:#00d4ff;color:#000;font-weight:bold;cursor:pointer}
-.stat{font-size:14px;margin:5px 0}
-.stat b{color:#00d4ff}
-.card{
-background:#0b0f19;padding:8px;border-radius:6px;
-margin-top:5px;border-left:3px solid #00d4ff
-}
-table{width:100%;border-collapse:collapse;margin-top:10px}
-th,td{padding:8px;text-align:center}
-th{background:#0b0f19}
-td{border-bottom:1px solid #2d3343}
-</style>
-</head>
-
-<body>
-
-<div id="map"></div>
-
-<div class="panel">
-<div class="stat">⏰ توقيت الانطلاق الرسمي</div>
-<input type="datetime-local" id="startTime">
-
-<div class="stat">📍 إحداثيات الانطلاق</div>
-<input id="startCoord" value="33.2722,-8.3732">
-
-<div class="stat">🏁 مدينة الوصول</div>
-<input id="city" placeholder="مثال: Casablanca">
-
-<button onclick="startRace()">بدء السباق 🕊️</button>
-
-<hr>
-
-<h3>إضافة متسابق</h3>
-<input id="name" placeholder="اسم المتسابق">
-<input id="arrival" type="datetime-local">
-<button onclick="addRacer()">إضافة</button>
-
-<div id="list"></div>
-
-<button onclick="calculate()">🏆 حساب النتائج والترتيب</button>
-
-<div id="results"></div>
-</div>
-
-<script>
-/* ================= MAP ================= */
-let map = L.map('map').setView([33.2722,-8.3732],7);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png')
-.addTo(map);
-
-let startMarker = L.marker([33.2722,-8.3732]).addTo(map);
-let pigeon, destPoint, distanceMeters;
-
-/* ================= DATA ================= */
-let racers = [];
-
-/* ================= START RACE ================= */
-async function startRace(){
-const s = startCoord.value.split(',');
-startMarker.setLatLng([+s[0],+s[1]]);
-
-const geo = await fetch(
-`https://nominatim.openstreetmap.org/search?format=json&q=${city.value}&limit=1`
-);
-const g = await geo.json();
-destPoint = L.latLng(+g[0].lat,+g[0].lon);
-
-distanceMeters = map.distance(startMarker.getLatLng(),destPoint);
-
-L.polyline([startMarker.getLatLng(),destPoint],
-{color:'#00d4ff',dashArray:'6,6'}).addTo(map);
-
-map.fitBounds([startMarker.getLatLng(),destPoint],{padding:[40,40]});
-
-/* حمامة */
-if(pigeon) map.removeLayer(pigeon);
-pigeon = L.marker(startMarker.getLatLng(),
-{icon:L.divIcon({html:'🕊️',iconSize:[30,30]})}).addTo(map);
-
-animatePigeon();
-}
-
-/* ================= PIGEON TRACK ================= */
-function animatePigeon(){
-let p = 0;
-function step(){
-p += 0.002;
-if(p>=1){pigeon.setLatLng(destPoint);return;}
-pigeon.setLatLng([
-startMarker.getLatLng().lat +
-(destPoint.lat-startMarker.getLatLng().lat)*p,
-startMarker.getLatLng().lng +
-(destPoint.lng-startMarker.getLatLng().lng)*p
-]);
-requestAnimationFrame(step);
-}
-step();
-}
-
-/* ================= ADD RACER ================= */
-function addRacer(){
-racers.push({
-name:name.value,
-arrival:new Date(arrival.value)
-});
-list.innerHTML = racers.map(r=>`
-<div class="card">${r.name} – وصول: ${r.arrival.toLocaleTimeString()}</div>
-`).join('');
-name.value='';
-}
-
-/* ================= CALCULATE ================= */
-function calculate(){
-const start = new Date(startTime.value);
-
-const res = racers.map(r=>{
-const timeSec = (r.arrival - start)/1000;
-const speed = distanceMeters / timeSec;
-return {...r,timeSec,speed};
-}).sort((a,b)=>b.speed-a.speed);
-
-results.innerHTML = `
-<table>
-<thead>
-<tr>
-<th>#</th>
-<th>الاسم</th>
-<th>الزمن (ث)</th>
-<th>السرعة (م/ث)</th>
-</tr>
-</thead>
-<tbody>
-${res.map((r,i)=>`
-<tr>
-<td>${i+1}</td>
-<td>${r.name}</td>
-<td>${r.timeSec.toFixed(2)}</td>
-<td style="color:#10b981">${r.speed.toFixed(3)}</td>
-</tr>
-`).join('')}
-</tbody>
-</table>`;
-}
-</script>
-
-</body>
-</html>
