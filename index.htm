@@ -10,226 +10,226 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
-        :root { --primary: #00d4ff; --bg: #050a14; --card: #111827; --accent: #10b981; }
-        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; overflow: hidden; }
+        :root { --primary: #00d4ff; --bg: #0b0f19; --card: #161b2a; --accent: #00ff88; }
+        body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; }
         
-        /* Navigation */
-        .tabs { display: flex; background: #0f172a; border-bottom: 2px solid var(--primary); height: 60px; }
-        .tab-btn { flex: 1; border: none; background: none; color: #94a3b8; font-weight: bold; cursor: pointer; font-size: 1rem; }
-        .tab-btn.active { color: var(--primary); background: rgba(0, 212, 255, 0.1); border-bottom: 4px solid var(--primary); }
+        /* Navigation Fixed */
+        nav { display: flex; background: #1a1f2e; border-bottom: 2px solid var(--primary); z-index: 1000; }
+        .nav-btn { flex: 1; padding: 15px; border: none; background: none; color: #8892b0; font-weight: bold; cursor: pointer; font-size: 1rem; }
+        .nav-btn.active { color: var(--primary); background: rgba(0, 212, 255, 0.1); border-bottom: 4px solid var(--primary); }
 
-        /* Pages */
-        .page { display: none; height: calc(100vh - 60px); overflow-y: auto; padding: 15px; box-sizing: border-box; }
+        .container { flex: 1; position: relative; overflow: hidden; }
+        .page { display: none; height: 100%; overflow-y: auto; padding: 20px; box-sizing: border-box; }
         .page.active { display: block; }
 
-        /* Map Section */
-        #map { height: 350px; width: 100%; border-radius: 15px; border: 1px solid #1e293b; z-index: 10; }
-        .weather-bar { display: flex; justify-content: space-around; background: var(--card); padding: 10px; border-radius: 10px; margin-top: 10px; border: 1px solid #1e293b; }
-        .w-item { text-align: center; }
-        .w-item b { display: block; color: var(--primary); }
+        /* Map UI */
+        #map { height: 400px; width: 100%; border-radius: 15px; border: 1px solid #2d3343; }
+        .stats-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0; }
+        .stat-card { background: var(--card); padding: 10px; border-radius: 8px; text-align: center; border: 1px solid #2d3343; }
+        .stat-card small { display: block; color: #8892b0; font-size: 10px; }
+        .stat-card b { color: var(--primary); }
 
         /* Forms */
-        .input-card { background: var(--card); padding: 20px; border-radius: 15px; margin-bottom: 15px; border: 1px solid #1e293b; }
-        label { font-size: 12px; color: #94a3b8; margin-bottom: 5px; display: block; }
-        input { background: #050a14; border: 1px solid #334155; color: white; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
+        .form-section { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #2d3343; margin-bottom: 20px; }
+        label { display: block; color: var(--primary); font-size: 12px; margin-bottom: 8px; font-weight: bold; }
+        input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #2d3343; background: #0b0f19; color: white; box-sizing: border-box; }
         
-        .btn { background: var(--primary); color: #000; border: none; padding: 12px; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; }
-        .btn-calc { background: var(--accent); color: white; margin-top: 15px; }
-
-        /* Table */
-        #resultsWrapper { background: white; color: black; border-radius: 15px; overflow: hidden; display: none; margin-top: 20px; }
-        .res-table { width: 100%; border-collapse: collapse; }
-        .res-table th { background: #0f172a; color: white; padding: 12px; text-align: center; }
-        .res-table td { padding: 10px; border-bottom: 1px solid #eee; text-align: center; }
+        .action-btn { background: var(--primary); color: #000; border: none; padding: 15px; border-radius: 10px; width: 100%; font-weight: 800; cursor: pointer; text-transform: uppercase; }
+        .btn-green { background: var(--accent); }
 
         /* Suggestions */
-        .suggest-box { background: #1e293b; position: absolute; width: 90%; z-index: 2000; border-radius: 8px; }
-        .suggest-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #334155; }
+        .search-results { background: #1a1f2e; border-radius: 8px; position: absolute; width: 90%; z-index: 2000; max-height: 200px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .search-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #2d3343; font-size: 14px; }
+        .search-item:hover { background: var(--primary); color: #000; }
+
+        /* Results Table */
+        #resultCapture { background: white; color: black; border-radius: 15px; overflow: hidden; display: none; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #0b0f19; color: white; padding: 15px; }
+        td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <nav class="tabs">
-        <button class="tab-btn active" onclick="switchPage('radarPage', this)">📡 الرادار والمحاكاة</button>
-        <button class="tab-btn" onclick="switchPage('calcPage', this)">⏱️ الحساب والنتائج</button>
+    <nav>
+        <button class="nav-btn active" onclick="showTab('radar-tab')">📡 الرادار والتتبع</button>
+        <button class="nav-btn" onclick="showTab('calc-tab')">⏱️ حساب السرعة</button>
     </nav>
 
-    <div id="radarPage" class="page active">
-        <div id="map"></div>
-        
-        <div class="weather-bar">
-            <div class="w-item"><small>الرياح</small><b id="ws">--</b></div>
-            <div class="w-item"><small>الاتجاه</small><b id="wd">--</b></div>
-            <div class="w-item"><small>الحرارة</small><b id="wt">--</b></div>
-        </div>
-
-        <div class="input-card" style="margin-top: 15px;">
-            <div style="position: relative;">
-                <label>🏁 مدينة الوصول (إكمال ذكي)</label>
-                <input type="text" id="citySearch" placeholder="ابحث عن المدينة..." oninput="fetchCities(this.value)">
-                <div id="cityList" class="suggest-box"></div>
-            </div>
-            <label>📍 إحداثيات الانطلاق</label>
-            <input type="text" id="startCoord" value="33.2722, -8.3732" onchange="loadRadarInfo()">
+    <div class="container">
+        <div id="radar-tab" class="page active">
+            <div id="map"></div>
             
-            <label>⏰ وقت الانطلاق الرسمي</label>
-            <input type="datetime-local" id="startTime">
-            
-            <button class="btn" onclick="runFlightSim()">محاكاة طيران الحمامة 🕊️</button>
-        </div>
-    </div>
-
-    <div id="calcPage" class="page">
-        <div class="input-card">
-            <h3 style="margin:0 0 15px 0; color:var(--primary)">إضافة متسابق</h3>
-            <label>اسم المتسابق</label>
-            <input type="text" id="rName" placeholder="مثال: عائلة المكاوي">
-            <label>المسافة (Km)</label>
-            <input type="number" id="rDist" placeholder="سيتم تعبئتها تلقائياً أو أدخلها يدوياً">
-            <label>وقت الوصول (ساعة:دقيقة:ثانية)</label>
-            <div style="display: flex; gap: 5px;">
-                <input type="number" id="rH" placeholder="HH" value="12">
-                <input type="number" id="rM" placeholder="MM" value="00">
-                <input type="number" id="rS" placeholder="SS" value="00">
+            <div class="stats-bar">
+                <div class="stat-card"><small>الرياح</small><b id="ws">--</b></div>
+                <div class="stat-card"><small>الاتجاه</small><b id="wd">--</b></div>
+                <div class="stat-card"><small>الحرارة</small><b id="wt">--</b></div>
             </div>
-            <button class="btn" onclick="addToRacers()">أضف للقائمة +</button>
-        </div>
 
-        <div id="listDisplay"></div>
+            <div class="form-section">
+                <div style="position:relative;">
+                    <label>🏁 مدينة الوصول (إدخال ذكي)</label>
+                    <input type="text" id="cityIn" placeholder="اكتب اسم المدينة..." oninput="searchCity(this.value)">
+                    <div id="results" class="search-results"></div>
+                </div>
 
-        <button class="btn btn-calc" onclick="calculateFinal()">🏆 استخراج النتائج النهائية</button>
+                <label>📍 إحداثيات الانطلاق</label>
+                <input type="text" id="startCoord" value="33.2722, -8.3732" onchange="initWeather()">
 
-        <div id="resultsWrapper">
-            <div style="background:#0f172a; color:#00d4ff; padding:20px; text-align:center; font-weight:bold;">
-                ELMAKKAOUY RADAR PRO - RESULTS
+                <label>⏰ وقت الانطلاق الرسمي</label>
+                <input type="datetime-local" id="startTimeOfficial">
+
+                <button class="action-btn" onclick="startPigeonSim()">إطلاق المحاكاة 🕊️</button>
             </div>
-            <table class="res-table" id="resTable">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>المتسابق</th>
-                        <th>المسافة</th>
-                        <th>الوصول</th>
-                        <th>السرعة</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
         </div>
-        <button class="btn" id="saveBtn" style="display:none; margin-top:10px; background:#475569;" onclick="downloadResult()">📸 حفظ كصورة</button>
+
+        <div id="calc-tab" class="page">
+            <div class="form-section">
+                <h3 style="margin-top:0">إضافة متسابقين</h3>
+                <label>اسم المتسابق</label>
+                <input type="text" id="racerName" placeholder="مثال: البطل المكاوي">
+                
+                <label>المسافة (Km)</label>
+                <input type="number" id="racerDist" placeholder="0.000">
+                
+                <label>توقيت الوصول (ساعة : دقيقة : ثانية)</label>
+                <div style="display:flex; gap:10px;">
+                    <input type="number" id="h" placeholder="HH" value="12">
+                    <input type="number" id="m" placeholder="MM" value="00">
+                    <input type="number" id="s" placeholder="SS" value="00">
+                </div>
+                
+                <button class="action-btn btn-green" onclick="addToList()">أضف للقائمة +</button>
+            </div>
+
+            <div id="racersList" style="margin-bottom:20px;"></div>
+
+            <button class="action-btn" style="background:#fff; color:#000;" onclick="calculateSpeed()">🏆 عرض الترتيب والنتائج</button>
+
+            <div id="resultCapture">
+                <div style="background:#0b0f19; color:var(--primary); padding:20px; text-align:center;">
+                    <h2 style="margin:0;">ELMAKKAOUY RADAR PRO</h2>
+                    <span id="raceMeta" style="font-size:12px;"></span>
+                </div>
+                <table id="resTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>الاسم</th>
+                            <th>المسافة</th>
+                            <th>الوصول</th>
+                            <th>السرعة (م/د)</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <button class="action-btn" id="dlBtn" style="display:none; margin-top:10px; background:#475569;" onclick="saveAsImage()">📸 حفظ النتيجة كصورة</button>
+        </div>
     </div>
 
 <script>
-    let map, startMarker, pigeon, route, racers = [], destCoord = null;
+    let map, startMarker, pigeon, route, racersData = [], dest = null;
 
-    // 1. نظام التنقل المستقر
-    function switchPage(pageId, btn) {
+    // إصلاح مشكلة التنقل والخريطة
+    function showTab(tabId) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(pageId).classList.add('active');
-        btn.classList.add('active');
-        if(pageId === 'radarPage') {
-            setTimeout(() => map.invalidateSize(), 300);
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        
+        document.getElementById(tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+
+        if(tabId === 'radar-tab' && map) {
+            setTimeout(() => { map.invalidateSize(); }, 200);
         }
     }
 
-    // 2. تهيئة الخريطة
+    // تهيئة الخريطة
     window.onload = () => {
         map = L.map('map', { zoomControl: false }).setView([33.2722, -8.3732], 7);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
         startMarker = L.marker([33.2722, -8.3732]).addTo(map);
         
-        // ضبط الوقت الافتراضي
-        let now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        document.getElementById('startTime').value = now.toISOString().slice(0,16);
+        // وقت افتراضي
+        let d = new Date();
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        document.getElementById('startTimeOfficial').value = d.toISOString().slice(0,16);
         
-        loadRadarInfo();
+        initWeather();
     };
 
-    // 3. الرادار والطقس
-    async function loadRadarInfo() {
+    // طقس حقيقي
+    async function initWeather() {
         const c = document.getElementById('startCoord').value.split(',');
-        const lat = parseFloat(c[0]), lng = parseFloat(c[1]);
-        startMarker.setLatLng([lat, lng]);
-        map.setView([lat, lng]);
-
-        try {
-            const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=992e2b79f5e3386bda09d14ff4807f9d&units=metric`);
-            const d = await res.json();
-            document.getElementById('ws').innerText = (d.wind.speed * 3.6).toFixed(1) + " km/h";
-            document.getElementById('wt').innerText = d.main.temp + "°C";
-            const dirs = ['N','NE','E','SE','S','SW','W','NW'];
-            document.getElementById('wd').innerText = dirs[Math.round(d.wind.deg/45)%8];
-        } catch(e) {}
+        const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${c[0]}&lon=${c[1]}&appid=992e2b79f5e3386bda09d14ff4807f9d&units=metric`);
+        const data = await res.json();
+        document.getElementById('ws').innerText = (data.wind.speed * 3.6).toFixed(1) + " km/h";
+        document.getElementById('wt').innerText = data.main.temp + " °C";
+        const dirs = ['شمال','شمال شرقي','شرق','جنوب شرقي','جنوب','جنوب غربي','غرب','شمال غربي'];
+        document.getElementById('wd').innerText = dirs[Math.round(data.wind.deg/45)%8];
     }
 
-    // 4. البحث الذكي عن المدن
-    async function fetchCities(q) {
+    // بحث ذكي عن المدن
+    async function searchCity(q) {
         if(q.length < 3) return;
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=5`);
         const data = await res.json();
-        const box = document.getElementById('cityList');
-        box.innerHTML = data.map(d => `<div class="suggest-item" onclick="selectCity(${d.lat}, ${d.lon}, '${d.display_name}')">${d.display_name.split(',')[0]}</div>`).join('');
+        const results = document.getElementById('results');
+        results.innerHTML = data.map(d => `<div class="search-item" onclick="pickCity(${d.lat}, ${d.lon}, '${d.display_name}')">${d.display_name.split(',')[0]}</div>`).join('');
     }
 
-    function selectCity(lat, lon, name) {
-        destCoord = [lat, lon];
-        document.getElementById('citySearch').value = name.split(',')[0];
-        document.getElementById('cityList').innerHTML = '';
+    function pickCity(lat, lon, name) {
+        dest = [lat, lon];
+        document.getElementById('cityIn').value = name.split(',')[0];
+        document.getElementById('results').innerHTML = '';
         
-        // حساب المسافة ونقلها تلقائياً لصفحة الحساب
-        const dist = (map.distance(startMarker.getLatLng(), destCoord)/1000).toFixed(3);
-        document.getElementById('rDist').value = dist;
+        const dist = (map.distance(startMarker.getLatLng(), dest)/1000).toFixed(3);
+        document.getElementById('racerDist').value = dist; // نقل المسافة تلقائياً
 
         if(route) map.removeLayer(route);
-        route = L.polyline([startMarker.getLatLng(), destCoord], {color: var(--primary), weight: 2, dashArray: '5, 10'}).addTo(map);
-        map.fitBounds(route.getBounds(), {padding: [50,50]});
+        route = L.polyline([startMarker.getLatLng(), dest], {color: var(--primary), weight: 2, dashArray: '5, 10'}).addTo(map);
+        map.fitBounds(route.getBounds(), {padding:[50,50]});
     }
 
-    // 5. محاكاة الحمامة
-    function runFlightSim() {
-        if(!destCoord) return alert("اختر مدينة الوصول أولاً");
+    // محاكاة الحمامة
+    function startPigeonSim() {
+        if(!dest) return alert("اختر مدينة الوصول");
         if(pigeon) map.removeLayer(pigeon);
+        pigeon = L.marker(startMarker.getLatLng(), { icon: L.divIcon({ html: '🕊️', className: '', iconSize:[25,25] }) }).addTo(map);
         
-        pigeon = L.marker(startMarker.getLatLng(), {
-            icon: L.divIcon({ html: '🕊️', className: '', iconSize:[25,25] })
-        }).addTo(map);
-
         let p = 0;
         const start = startMarker.getLatLng();
-        const interval = setInterval(() => {
+        const move = setInterval(() => {
             p += 0.01;
-            if(p >= 1) { clearInterval(interval); return; }
-            let lat = start.lat + (destCoord[0] - start.lat) * p;
-            let lng = start.lng + (destCoord[1] - start.lng) * p;
-            pigeon.setLatLng([lat, lng]);
-        }, 40);
+            if(p >= 1) { clearInterval(move); return; }
+            pigeon.setLatLng([start.lat + (dest[0] - start.lat)*p, start.lng + (dest[1] - start.lng)*p]);
+        }, 50);
     }
 
-    // 6. الحسابات
-    function addToRacers() {
-        const name = document.getElementById('rName').value;
-        const dist = document.getElementById('rDist').value;
-        const h = document.getElementById('rH').value;
-        const m = document.getElementById('rM').value;
-        const s = document.getElementById('rS').value;
-
-        if(!name || !dist) return alert("أدخل الاسم والمسافة");
-        racers.push({ name, dist, h, m, s });
+    // الحسابات
+    function addToList() {
+        const name = document.getElementById('racerName').value;
+        const dist = document.getElementById('racerDist').value;
+        if(!name || !dist) return alert("اكمل البيانات");
         
-        document.getElementById('listDisplay').innerHTML = racers.map((r, i) => `
-            <div style="background:#1e293b; padding:10px; border-radius:8px; margin-bottom:5px; display:flex; justify-content:space-between;">
-                <span>${r.name} (${r.dist} Km)</span>
-                <span>${r.h}:${r.m}:${r.s}</span>
+        racersData.push({
+            name, dist, 
+            h: document.getElementById('h').value,
+            m: document.getElementById('m').value,
+            s: document.getElementById('s').value
+        });
+        
+        document.getElementById('racersList').innerHTML = racersData.map(r => `
+            <div style="background:var(--card); padding:10px; border-radius:8px; margin-bottom:5px; border-left:4px solid var(--primary)">
+                ${r.name} - ${r.dist} Km - (${r.h}:${r.m}:${r.s})
             </div>
         `).join('');
-        document.getElementById('rName').value = "";
+        document.getElementById('racerName').value = '';
     }
 
-    function calculateFinal() {
-        const startVal = new Date(document.getElementById('startTime').value);
-        let results = racers.map(r => {
+    function calculateSpeed() {
+        const startVal = new Date(document.getElementById('startTimeOfficial').value);
+        let final = racersData.map(r => {
             let arrival = new Date(startVal);
             arrival.setHours(r.h, r.m, r.s);
             let diff = (arrival - startVal) / 60000;
@@ -238,23 +238,23 @@
         }).sort((a,b) => b.speed - a.speed);
 
         const tbody = document.querySelector('#resTable tbody');
-        tbody.innerHTML = results.map((r, i) => `
+        tbody.innerHTML = final.map((r, i) => `
             <tr>
                 <td>${i+1}</td>
-                <td><b>${r.name}</b></td>
+                <td style="text-align:right">${r.name}</td>
                 <td>${r.dist}</td>
                 <td>${r.h}:${r.m}:${r.s}</td>
-                <td style="color:#10b981; font-weight:bold;">${r.speed.toFixed(3)}</td>
+                <td style="color:#10b981">${r.speed.toFixed(3)}</td>
             </tr>
         `).join('');
-        document.getElementById('resultsWrapper').style.display = 'block';
-        document.getElementById('saveBtn').style.display = 'block';
+        document.getElementById('resultCapture').style.display = 'block';
+        document.getElementById('dlBtn').style.display = 'block';
     }
 
-    function downloadResult() {
-        html2canvas(document.getElementById('resultsWrapper')).then(canvas => {
+    function saveAsImage() {
+        html2canvas(document.getElementById('resultCapture')).then(canvas => {
             const a = document.createElement('a');
-            a.download = 'ELMAKKAOUY_RADAR.png';
+            a.download = 'ELMAKKAOUY_RESULTS.png';
             a.href = canvas.toDataURL();
             a.click();
         });
