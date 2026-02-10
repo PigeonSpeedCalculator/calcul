@@ -1,3 +1,98 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<title>Real Pigeon Flight Physics</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+body{
+margin:0;background:#0b0f19;color:#fff;
+font-family:Arial,sans-serif
+}
+#map{height:420px}
+.panel{
+padding:15px;background:#161b2a
+}
+.stat{
+margin:5px 0;font-size:14px
+}
+.stat b{color:#00d4ff}
+input,button{
+width:100%;padding:10px;margin-top:8px;
+background:#0b0f19;border:1px solid #2d3343;
+color:#fff;border-radius:6px
+}
+button{
+background:#00d4ff;color:#000;font-weight:bold;cursor:pointer
+}
+</style>
+</head>
+
+<body>
+
+<div id="map"></div>
+
+<div class="panel">
+<input id="city" placeholder="مدينة الوصول">
+<input id="startCoord" value="33.2722,-8.3732">
+<button onclick="start()">إطلاق الحمامة 🕊️</button>
+
+<div class="stat">🌬️ سرعة الرياح: <b id="windS">-- m/s</b></div>
+<div class="stat">🧭 اتجاه الرياح: <b id="windD">-- °</b></div>
+<div class="stat">🕊️ السرعة الأرضية: <b id="speed">-- m/s</b></div>
+<div class="stat">⏱️ الزمن المحسوب: <b id="time">-- s</b></div>
+<div class="stat">📏 المسافة: <b id="dist">-- m</b></div>
+</div>
+
+<script>
+/* ================== CONSTANTS ================== */
+const AIR_SPEED = 20; // m/s سرعة الحمامة
+
+let map, startMarker, pigeon, dest;
+let windSpeed = 0;
+let windDeg = 0;
+
+/* ================== MAP ================== */
+map = L.map('map').setView([33.2722,-8.3732],7);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png')
+.addTo(map);
+
+startMarker = L.marker([33.2722,-8.3732]).addTo(map);
+
+/* ================== WEATHER ================== */
+async function loadWeather(lat,lon){
+    try{
+        const r = await fetch(
+            `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=992e2b79f5e3386bda09d14ff4807f9d`
+        );
+        const d = await r.json();
+        windSpeed = d.wind.speed;
+        windDeg = d.wind.deg;
+        windS.innerText = windSpeed.toFixed(2);
+        windD.innerText = windDeg;
+    } catch(e){
+        windSpeed = 0;
+        windDeg = 0;
+        windS.innerText = "--";
+        windD.innerText = "--";
+        alert("خطأ في جلب بيانات الرياح");
+    }
+}
+
+/* ================== MATH ================== */
+function rad(d){return d*Math.PI/180}
+
+function bearing(a,b,c,d){
+    const y=Math.sin(rad(d-b))*Math.cos(rad(c));
+    const x=Math.cos(rad(a))*Math.sin(rad(c))-
+              Math.sin(rad(a))*Math.cos(rad(c))*Math.cos(rad(d-b));
+    return (Math.atan2(y,x)*180/Math.PI+360)%360;
+}
+
 /* ================== START محسّن ================== */
 async function start(){
     const s = startCoord.value.split(',');
@@ -82,3 +177,7 @@ async function start(){
     }
     requestAnimationFrame(animate);
 }
+</script>
+
+</body>
+</html>
