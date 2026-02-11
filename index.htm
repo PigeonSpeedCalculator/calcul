@@ -2,30 +2,50 @@
 <html lang="ar">
 <head>
 <meta charset="UTF-8">
-<title>ELMAKKAOUY – REAL PHYSICS</title>
+<title>REAL FLIGHT ENGINE</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
-body{margin:0;background:#0f172a;color:#fff;font-family:Arial}
+body{margin:0;background:#0f172a;color:white;font-family:Arial}
 #map{height:420px}
 .panel{padding:15px;background:#111827}
+
 input,button{
 width:100%;padding:10px;margin-top:8px;
 background:#0b1220;border:1px solid #1f2937;
 color:white;border-radius:6px
 }
 button{background:#00d4ff;color:black;font-weight:bold}
+
 .stat{margin:6px 0}
 .stat b{color:#00ff88}
-#suggestions{
-background:#0b1220;border:1px solid #1f2937;
-max-height:150px;overflow:auto;
+
+/* إزالة أي خلفية */
+.leaflet-div-icon{
+background:transparent!important;
+border:none!important;
 }
-.sItem{padding:6px;cursor:pointer}
-.sItem:hover{background:#1f2937}
+
+/* جناحين */
+.wing{
+display:inline-block;
+font-size:28px;
+animation:flap 0.35s infinite ease-in-out alternate;
+}
+
+@keyframes flap{
+from{transform:scaleY(1)}
+to{transform:scaleY(0.6)}
+}
+
+#birdWrap{
+display:flex;
+align-items:center;
+justify-content:center;
+}
 </style>
 </head>
 
@@ -34,19 +54,16 @@ max-height:150px;overflow:auto;
 <div id="map"></div>
 
 <div class="panel">
-
 <input type="datetime-local" id="startTime">
 <input id="startCoord" value="33.421265,-7.812173">
-<input id="city" placeholder="اكتب مدينة الوصول">
-<div id="suggestions"></div>
+<input id="city" value="kenitra">
 <button onclick="startFlight()">بدء التتبع 🕊️</button>
 
 <hr>
 
 <div class="stat">المسافة: <b id="dist">--</b> Km</div>
-<div class="stat">السرعة الأرضية: <b id="speed">--</b> m/min</div>
+<div class="stat">السرعة: <b id="speed">--</b> m/min</div>
 <div class="stat">الرياح: <b id="wind">--</b> m/min</div>
-
 </div>
 
 <script>
@@ -54,16 +71,15 @@ max-height:150px;overflow:auto;
 let map = L.map('map').setView([33.4,-7.8],7);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-let pigeon, routeLine, interval;
+let pigeon, routeLine, timer;
 let startPoint, endPoint;
-let totalDistance = 0;
+let totalDistance=0;
 
-const AIR_SPEED = 1200; // m/min
+const AIR_SPEED=1200;
 
 function rad(x){return x*Math.PI/180}
 function deg(x){return x*180/Math.PI}
 
-/* ================= Great Circle Distance ================= */
 function haversine(a,b,c,d){
 const R=6371000;
 const dLat=rad(c-a);
@@ -73,7 +89,6 @@ Math.cos(rad(a))*Math.cos(rad(c))*Math.sin(dLon/2)**2;
 return 2*R*Math.asin(Math.sqrt(x));
 }
 
-/* ================= Bearing ================= */
 function bearing(a,b,c,d){
 const y=Math.sin(rad(d-b))*Math.cos(rad(c));
 const x=Math.cos(rad(a))*Math.sin(rad(c))-
@@ -81,26 +96,13 @@ Math.sin(rad(a))*Math.cos(rad(c))*Math.cos(rad(d-b));
 return (deg(Math.atan2(y,x))+360)%360;
 }
 
-/* ================= Autocomplete ================= */
-city.addEventListener("input", async ()=>{
-if(city.value.length<3){suggestions.innerHTML="";return;}
-const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${city.value}&limit=5`);
+async function getCoords(name){
+const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${name}&limit=1`);
 const d=await r.json();
-suggestions.innerHTML="";
-d.forEach(item=>{
-const div=document.createElement("div");
-div.className="sItem";
-div.innerText=item.display_name;
-div.onclick=()=>{
-city.value=item.display_name;
-endPoint=L.latLng(item.lat,item.lon);
-suggestions.innerHTML="";
-};
-suggestions.appendChild(div);
-});
-});
+if(!d.length){alert("المدينة غير موجودة");return null;}
+return [parseFloat(d[0].lat),parseFloat(d[0].lon)];
+}
 
-/* ================= Weather ================= */
 async function getWind(lat,lon){
 try{
 const r=await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=992e2b79f5e3386bda09d14ff4807f9d`);
@@ -114,18 +116,18 @@ return{speed:0,deg:0};
 }
 }
 
-/* ================= Start Flight ================= */
 async function startFlight(){
 
-if(interval) clearInterval(interval);
+if(timer) clearInterval(timer);
 if(!startTime.value) return alert("حدد وقت الانطلاق");
 
 const s=startCoord.value.split(',');
 startPoint=L.latLng(+s[0],+s[1]);
 
-if(!endPoint) return alert("اختر مدينة من القائمة");
+const coords=await getCoords(city.value);
+if(!coords) return;
 
-map.setView(startPoint,7);
+endPoint=L.latLng(coords[0],coords[1]);
 
 totalDistance=haversine(startPoint.lat,startPoint.lng,endPoint.lat,endPoint.lng);
 dist.innerText=(totalDistance/1000).toFixed(3);
@@ -134,21 +136,22 @@ if(routeLine) map.removeLayer(routeLine);
 routeLine=L.polyline([startPoint,endPoint],{color:'#00ffff'}).addTo(map);
 
 if(pigeon) map.removeLayer(pigeon);
+
 pigeon=L.marker(startPoint,{
 icon:L.divIcon({
-html:"<div id='bird'>🕊️</div>",
-iconSize:[40,40]
+html:`<div id="birdWrap">🕊️</div>`,
+iconSize:[30,30]
 })
 }).addTo(map);
 
 const wind=await getWind(startPoint.lat,startPoint.lng);
-windEl.innerText=wind.speed.toFixed(1);
+document.getElementById("wind").innerText=wind.speed.toFixed(1);
 
 const routeBearing=bearing(startPoint.lat,startPoint.lng,endPoint.lat,endPoint.lng);
 
 const startMoment=new Date(startTime.value).getTime();
 
-interval=setInterval(()=>{
+timer=setInterval(()=>{
 
 const elapsed=(Date.now()-startMoment)/60000;
 if(elapsed<0) return;
@@ -158,28 +161,29 @@ const rel=rad(wind.deg-routeBearing);
 const windX=wind.speed*Math.cos(rel);
 const windY=wind.speed*Math.sin(rel);
 
-const groundSpeed=Math.sqrt((AIR_SPEED+windX)**2 + windY**2);
-
-speed.innerText=groundSpeed.toFixed(1);
+const groundSpeed=Math.sqrt((AIR_SPEED+windX)**2+windY**2);
+document.getElementById("speed").innerText=groundSpeed.toFixed(1);
 
 const traveled=groundSpeed*elapsed;
 const p=traveled/totalDistance;
 
 if(p>=1){
 pigeon.setLatLng(endPoint);
-clearInterval(interval);
-speed.innerText="وصل ✔";
+clearInterval(timer);
+document.getElementById("speed").innerText="وصل ✔";
 return;
 }
 
-/* great-circle interpolation */
 const lat=startPoint.lat+(endPoint.lat-startPoint.lat)*p;
 const lng=startPoint.lng+(endPoint.lng-startPoint.lng)*p;
 
 pigeon.setLatLng([lat,lng]);
 
-const b=document.getElementById("bird");
-if(b) b.style.transform=`translateY(${Math.sin(Date.now()/80)*4}px)`;
+/* تدوير باتجاه المسار */
+const wrap=document.getElementById("birdWrap");
+if(wrap){
+wrap.style.transform=`rotate(${routeBearing}deg)`;
+}
 
 },50);
 
