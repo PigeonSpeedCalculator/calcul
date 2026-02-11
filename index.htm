@@ -2,7 +2,7 @@
 <html lang="ar">
 <head>
 <meta charset="UTF-8">
-<title>ELMAKKAOUY REAL FLIGHT</title>
+<title>ELMAKKAOUY REAL FLIGHT PRO</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -10,7 +10,7 @@
 
 <style>
 body{margin:0;background:#0b0f19;color:#fff;font-family:Arial}
-#map{height:380px}
+#map{height:400px}
 .panel{padding:15px;background:#161b2a}
 input,button{
 width:100%;padding:10px;margin-top:8px;
@@ -39,7 +39,8 @@ button{background:#00d4ff;color:#000;font-weight:bold;cursor:pointer}
 <div class="stat">📏 المسافة: <b id="dist">-- Km</b></div>
 <div class="stat">🌬️ الرياح: <b id="wind">-- m/min</b></div>
 <div class="stat">🌡️ الحرارة: <b id="temp">-- °C</b></div>
-<div class="stat">🚀 السرعة الحالية: <b id="speed">-- m/min</b></div>
+<div class="stat">🚀 السرعة الأرضية: <b id="speed">-- m/min</b></div>
+<div class="stat">⏱️ الزمن المنقضي: <b id="elapsed">-- min</b></div>
 
 </div>
 
@@ -49,12 +50,14 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').add
 
 let startMarker = L.marker([33.2722,-8.3732]).addTo(map);
 let pigeon, destPoint;
+
 let totalDistance = 0;
 let windSpeed = 0;
 let windDeg = 0;
 let temperature = 20;
 
-const AIR_SPEED = 1200; // m/min سباق احترافي
+const AIR_SPEED = 1200; // m/min
+const MIN_SPEED = 500;  // حد أدنى منطقي
 
 function rad(d){return d*Math.PI/180}
 
@@ -65,36 +68,51 @@ Math.sin(rad(a))*Math.cos(rad(c))*Math.cos(rad(d-b));
 return (Math.atan2(y,x)*180/Math.PI+360)%360;
 }
 
-/* ================= البحث عن المدينة ================= */
+/* ========= بحث المدينة مع معالجة أخطاء ========= */
 async function getCityCoords(name){
+try{
 const res = await fetch(
-`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(name)}&limit=1&accept-language=ar`
+`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(name)}&limit=1&addressdetails=1`
 );
 const data = await res.json();
-if(!data.length){
-alert("لم يتم العثور على المدينة");
+if(!data.length) throw "مدينة غير موجودة";
+return [parseFloat(data[0].lat),parseFloat(data[0].lon)];
+}catch(e){
+alert("تعذر العثور على المدينة");
 return null;
 }
-return [parseFloat(data[0].lat),parseFloat(data[0].lon)];
 }
 
-/* ================= الطقس ================= */
+/* ========= الطقس مع تحقق ========= */
 async function loadWeather(lat,lon){
+try{
 const r = await fetch(
 `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=992e2b79f5e3386bda09d14ff4807f9d&units=metric`
 );
 const d = await r.json();
 
-windSpeed = d.wind.speed * 60; // m/min
-windDeg = d.wind.deg;
-temperature = d.main.temp;
+windSpeed = (d.wind?.speed || 0) * 60;
+windDeg = d.wind?.deg || 0;
+temperature = d.main?.temp || 20;
 
 wind.innerText = windSpeed.toFixed(1);
 temp.innerText = temperature;
+
+}catch{
+windSpeed = 0;
+temperature = 20;
+}
 }
 
-/* ================= بدء السباق ================= */
+/* ========= بدء السباق ========= */
 async function startRace(){
+
+if(!startTime.value){
+alert("حدد توقيت الانطلاق");
+return;
+}
+
+const startMoment = new Date(startTime.value).getTime();
 
 const s = startCoord.value.split(',');
 startMarker.setLatLng([+s[0],+s[1]]);
@@ -118,17 +136,20 @@ iconSize:[40,40]
 })
 }).addTo(map);
 
+/* رفرفة */
 setInterval(()=>{
 const b=document.getElementById("bird");
-if(b) b.style.transform=
-`translateY(${Math.sin(Date.now()/120)*4}px)`;
-},60);
+if(b){
+b.style.transform=`translateY(${Math.sin(Date.now()/90)*5}px)`;
+}
+},50);
 
-animateFlight();
+animateFlight(startMoment);
 }
 
-/* ================= محاكاة واقعية ================= */
-function animateFlight(){
+/* ========= محاكاة فيزيائية متقدمة ========= */
+function animateFlight(startMoment){
+
 let traveled = 0;
 let last = performance.now();
 
@@ -137,38 +158,51 @@ const end = destPoint;
 const routeBearing = bearing(start.lat,start.lng,end.lat,end.lng);
 
 function step(now){
+
 const dt = (now-last)/60000;
 last = now;
 
 /* تأثير الحرارة */
-let tempFactor = 1 - ((temperature-20)*0.005);
+const tempFactor = 1 - ((temperature-20)*0.004);
 
-/* زاوية الرياح */
+/* تأثير الرياح الأمامية */
 const rel = rad(windDeg - routeBearing);
-const windEffect = windSpeed * Math.cos(rel);
+const forwardWind = windSpeed * Math.cos(rel);
+
+/* انحراف جانبي */
+const crossWind = windSpeed * Math.sin(rel);
 
 /* السرعة الأرضية */
-let groundSpeed = (AIR_SPEED * tempFactor) + windEffect;
-groundSpeed = Math.max(600,groundSpeed);
+let groundSpeed = (AIR_SPEED * tempFactor) + forwardWind;
+groundSpeed = Math.max(MIN_SPEED,groundSpeed);
 
 speed.innerText = groundSpeed.toFixed(1);
 
 traveled += groundSpeed * dt;
 
+/* الزمن */
+const elapsedMin = (Date.now()-startMoment)/60000;
+elapsed.innerText = elapsedMin.toFixed(2);
+
 let p = traveled / totalDistance;
+
 if(p>=1){
 pigeon.setLatLng(end);
 speed.innerText="وصل ✔";
 return;
 }
 
+/* انحراف بسيط واقعي */
+const drift = crossWind * 0.000002 * traveled;
+
 pigeon.setLatLng([
-start.lat+(end.lat-start.lat)*p,
+start.lat+(end.lat-start.lat)*p + drift,
 start.lng+(end.lng-start.lng)*p
 ]);
 
 requestAnimationFrame(step);
 }
+
 requestAnimationFrame(step);
 }
 </script>
