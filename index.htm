@@ -2,7 +2,7 @@
 <html lang="ar">
 <head>
 <meta charset="UTF-8">
-<title>ELMAKKAOUY RACE PRO</title>
+<title>ELMAKKAOUY REAL FLIGHT</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -20,14 +20,6 @@ color:#fff;border-radius:6px
 button{background:#00d4ff;color:#000;font-weight:bold;cursor:pointer}
 .stat{margin:6px 0;font-size:14px}
 .stat b{color:#00ff88}
-.card{
-background:#0b0f19;padding:8px;margin-top:6px;
-border-left:3px solid #00d4ff;border-radius:6px
-}
-table{width:100%;border-collapse:collapse;margin-top:12px}
-th,td{padding:8px;text-align:center}
-th{background:#0b0f19}
-td{border-bottom:1px solid #2d3343}
 </style>
 </head>
 
@@ -37,177 +29,147 @@ td{border-bottom:1px solid #2d3343}
 
 <div class="panel">
 
-<div class="stat">⏰ توقيت الانطلاق الرسمي</div>
 <input type="datetime-local" id="startTime">
-
-<div class="stat">📍 إحداثيات الانطلاق</div>
 <input id="startCoord" value="33.2722,-8.3732">
-
-<div class="stat">🏁 مدينة الوصول</div>
-<input id="city" placeholder="مثال: Casablanca">
-
-<div class="stat">📏 المسافة (Km)</div>
-<input id="distanceKm" readonly>
-
+<input id="city" placeholder="اكتب مدينة الوصول">
 <button onclick="startRace()">بدء التتبع 🕊️</button>
 
 <hr>
 
-<div class="stat">🕊️ السرعة اللحظية: <b id="liveSpeed">-- m/min</b></div>
-<div class="stat">⏱️ الزمن المنقضي: <b id="elapsed">-- min</b></div>
-
-<hr>
-
-<h3>إضافة متسابق</h3>
-<input id="name" placeholder="اسم المتسابق">
-<input id="arrival" type="datetime-local">
-<button onclick="addRacer()">إضافة</button>
-
-<div id="list"></div>
-
-<button onclick="calculate()">🏆 حساب النتائج</button>
-<div id="results"></div>
+<div class="stat">📏 المسافة: <b id="dist">-- Km</b></div>
+<div class="stat">🌬️ الرياح: <b id="wind">-- m/min</b></div>
+<div class="stat">🌡️ الحرارة: <b id="temp">-- °C</b></div>
+<div class="stat">🚀 السرعة الحالية: <b id="speed">-- m/min</b></div>
 
 </div>
 
 <script>
-/* ================= MAP ================= */
 let map = L.map('map').setView([33.2722,-8.3732],7);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
 let startMarker = L.marker([33.2722,-8.3732]).addTo(map);
 let pigeon, destPoint;
-let totalDistanceMeters = 0;
-let startTimestamp = 0;
-let racers = [];
+let totalDistance = 0;
+let windSpeed = 0;
+let windDeg = 0;
+let temperature = 20;
 
-/* ================= START ================= */
+const AIR_SPEED = 1200; // m/min سباق احترافي
+
+function rad(d){return d*Math.PI/180}
+
+function bearing(a,b,c,d){
+const y=Math.sin(rad(d-b))*Math.cos(rad(c));
+const x=Math.cos(rad(a))*Math.sin(rad(c))-
+Math.sin(rad(a))*Math.cos(rad(c))*Math.cos(rad(d-b));
+return (Math.atan2(y,x)*180/Math.PI+360)%360;
+}
+
+/* ================= البحث عن المدينة ================= */
+async function getCityCoords(name){
+const res = await fetch(
+`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(name)}&limit=1&accept-language=ar`
+);
+const data = await res.json();
+if(!data.length){
+alert("لم يتم العثور على المدينة");
+return null;
+}
+return [parseFloat(data[0].lat),parseFloat(data[0].lon)];
+}
+
+/* ================= الطقس ================= */
+async function loadWeather(lat,lon){
+const r = await fetch(
+`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=992e2b79f5e3386bda09d14ff4807f9d&units=metric`
+);
+const d = await r.json();
+
+windSpeed = d.wind.speed * 60; // m/min
+windDeg = d.wind.deg;
+temperature = d.main.temp;
+
+wind.innerText = windSpeed.toFixed(1);
+temp.innerText = temperature;
+}
+
+/* ================= بدء السباق ================= */
 async function startRace(){
 
 const s = startCoord.value.split(',');
 startMarker.setLatLng([+s[0],+s[1]]);
 
-const geo = await fetch(
-`https://nominatim.openstreetmap.org/search?format=json&q=${city.value}&limit=1`
-);
-const g = await geo.json();
-destPoint = L.latLng(+g[0].lat,+g[0].lon);
+const coords = await getCityCoords(city.value);
+if(!coords) return;
 
-totalDistanceMeters = map.distance(startMarker.getLatLng(),destPoint);
-distanceKm.value = (totalDistanceMeters/1000).toFixed(3);
+destPoint = L.latLng(coords[0],coords[1]);
 
-L.polyline([startMarker.getLatLng(),destPoint],
-{color:'#00d4ff',dashArray:'6,6'}).addTo(map);
+await loadWeather(s[0],s[1]);
 
-map.fitBounds([startMarker.getLatLng(),destPoint],{padding:[40,40]});
+totalDistance = map.distance(startMarker.getLatLng(),destPoint);
+dist.innerText = (totalDistance/1000).toFixed(3);
 
 if(pigeon) map.removeLayer(pigeon);
 
-/* حمامة ترفرف */
 pigeon = L.marker(startMarker.getLatLng(),{
 icon:L.divIcon({
 html:"<div id='bird'>🕊️</div>",
-iconSize:[40,40],
-className:''
+iconSize:[40,40]
 })
 }).addTo(map);
 
-/* تأثير رفرفة */
 setInterval(()=>{
 const b=document.getElementById("bird");
 if(b) b.style.transform=
-`translateY(${Math.sin(Date.now()/100)*4}px)`;
+`translateY(${Math.sin(Date.now()/120)*4}px)`;
 },60);
 
-startTimestamp = new Date(startTime.value).getTime();
-
-animatePigeon();
+animateFlight();
 }
 
-/* ================= TRACKING ================= */
-function animatePigeon(){
+/* ================= محاكاة واقعية ================= */
+function animateFlight(){
 let traveled = 0;
 let last = performance.now();
 
+const start = startMarker.getLatLng();
+const end = destPoint;
+const routeBearing = bearing(start.lat,start.lng,end.lat,end.lng);
+
 function step(now){
-const dt = (now-last)/60000; // بالدقائق
+const dt = (now-last)/60000;
 last = now;
 
-/* سرعة افتراضية واقعية 1100 m/min */
-const realisticSpeed = 1100;
+/* تأثير الحرارة */
+let tempFactor = 1 - ((temperature-20)*0.005);
 
-traveled += realisticSpeed * dt;
+/* زاوية الرياح */
+const rel = rad(windDeg - routeBearing);
+const windEffect = windSpeed * Math.cos(rel);
 
-let p = traveled / totalDistanceMeters;
+/* السرعة الأرضية */
+let groundSpeed = (AIR_SPEED * tempFactor) + windEffect;
+groundSpeed = Math.max(600,groundSpeed);
+
+speed.innerText = groundSpeed.toFixed(1);
+
+traveled += groundSpeed * dt;
+
+let p = traveled / totalDistance;
 if(p>=1){
-pigeon.setLatLng(destPoint);
-liveSpeed.innerText="وصل ✔";
+pigeon.setLatLng(end);
+speed.innerText="وصل ✔";
 return;
 }
 
 pigeon.setLatLng([
-startMarker.getLatLng().lat +
-(destPoint.lat-startMarker.getLatLng().lat)*p,
-startMarker.getLatLng().lng +
-(destPoint.lng-startMarker.getLatLng().lng)*p
+start.lat+(end.lat-start.lat)*p,
+start.lng+(end.lng-start.lng)*p
 ]);
 
-const elapsedMin = (Date.now()-startTimestamp)/60000;
-elapsed.innerText = elapsedMin.toFixed(2);
-
-const currentSpeed = traveled / elapsedMin;
-liveSpeed.innerText = currentSpeed.toFixed(1)+" m/min";
-
 requestAnimationFrame(step);
 }
 requestAnimationFrame(step);
-}
-
-/* ================= RACERS ================= */
-function addRacer(){
-racers.push({
-name:name.value,
-arrival:new Date(arrival.value)
-});
-list.innerHTML = racers.map(r=>
-`<div class="card">${r.name} – ${r.arrival.toLocaleTimeString()}</div>`
-).join('');
-name.value='';
-}
-
-/* ================= CALCULATE ================= */
-function calculate(){
-
-const start = new Date(startTime.value);
-const distanceM = totalDistanceMeters;
-
-const res = racers.map(r=>{
-const minutes = (r.arrival - start)/60000;
-const speed = distanceM / minutes;
-return {...r,minutes,speed};
-}).sort((a,b)=>b.speed-a.speed);
-
-results.innerHTML = `
-<table>
-<thead>
-<tr>
-<th>#</th>
-<th>الاسم</th>
-<th>الزمن (د)</th>
-<th>السرعة (م/د)</th>
-</tr>
-</thead>
-<tbody>
-${res.map((r,i)=>`
-<tr>
-<td>${i+1}</td>
-<td>${r.name}</td>
-<td>${r.minutes.toFixed(2)}</td>
-<td style="color:#10b981">${r.speed.toFixed(1)}</td>
-</tr>
-`).join('')}
-</tbody>
-</table>`;
 }
 </script>
 
