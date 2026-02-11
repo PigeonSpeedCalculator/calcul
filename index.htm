@@ -2,25 +2,29 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>ELMAKKAOUY FLIGHT AI PRO - RealTime</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ELMAKKAOUY FLIGHT AI PRO - Ultimate</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <style>
-        :root { --primary: #00d4ff; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
-        body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; }
-        #map { height: 400px; width: 100%; border-bottom: 3px solid var(--primary); }
-        .container { padding: 15px; max-width: 1000px; margin: auto; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
-        .panel { background: var(--card); padding: 15px; border-radius: 12px; position: relative; }
-        input, button { width: 100%; padding: 10px; margin-top: 8px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
-        button { background: var(--primary); color: #000; font-weight: bold; cursor: pointer; border: none; }
-        .stats-bar { display: flex; justify-content: space-around; background: var(--card); padding: 12px; border-radius: 12px; margin: -20px auto 20px; position: relative; z-index: 1000; width: 90%; }
-        .stat-item b { display: block; color: var(--primary); font-size: 1.1em; }
-        #suggestions { background: var(--card); border: 1px solid var(--primary); position: absolute; z-index: 2000; width: 100%; max-height: 150px; overflow-y: auto; display: none; }
-        .sug { padding: 8px; cursor: pointer; border-bottom: 1px solid #444; }
-        table { width: 100%; margin-top: 15px; border-collapse: collapse; }
-        th, td { padding: 10px; text-align: center; border-bottom: 1px solid #334155; font-size: 0.9em; }
-        #bird { font-size: 25px; transition: all 0.5s linear; }
+        :root { --primary: #00d4ff; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #22c55e; }
+        body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
+        #map { height: 450px; width: 100%; border-bottom: 3px solid var(--primary); }
+        .container { padding: 20px; max-width: 1100px; margin: auto; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+        .panel { background: var(--card); padding: 20px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        h3 { margin-top: 0; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+        input, button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
+        button { background: var(--primary); color: #000; font-weight: bold; cursor: pointer; border: none; transition: 0.3s; }
+        button:hover { opacity: 0.8; transform: translateY(-2px); }
+        .stats-bar { display: flex; justify-content: space-around; background: var(--card); padding: 15px; border-radius: 12px; margin: -30px auto 20px; position: relative; z-index: 1000; width: 90%; border: 1px solid var(--primary); }
+        .stat-item { text-align: center; }
+        .stat-item b { display: block; color: var(--primary); font-size: 1.2em; }
+        .search-container { position: relative; }
+        #sugStart, #sugEnd { background: var(--card); border: 1px solid var(--primary); position: absolute; z-index: 2000; width: 100%; max-height: 150px; overflow-y: auto; display: none; border-radius: 0 0 8px 8px; }
+        .sug-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #444; font-size: 0.9em; }
+        .sug-item:hover { background: var(--primary); color: #000; }
+        table { width: 100%; margin-top: 20px; }
+        th, td { padding: 12px; text-align: center; border-bottom: 1px solid #334155; }
+        .bird-icon { font-size: 30px; filter: drop-shadow(0 0 8px var(--primary)); }
     </style>
 </head>
 <body>
@@ -28,9 +32,9 @@
 <div id="map"></div>
 
 <div class="stats-bar">
-    <div class="stat-item">📏 المسافة الكلية<b id="dist">0 Km</b></div>
-    <div class="stat-item">📍 الموقع الحالي<b id="status">جاهز</b></div>
-    <div class="stat-item">🌬️ سرعة الرياح<b id="windStat">0 m/m</b></div>
+    <div class="stat-item">📏 المسافة الكلية<b id="distDisplay">0 Km</b></div>
+    <div class="stat-item">📍 وضع الطيران<b id="statusDisplay">جاهز</b></div>
+    <div class="stat-item">🌬️ تأثير الرياح<b id="windDisplay">نشط</b></div>
 </div>
 
 <div class="container">
@@ -39,28 +43,38 @@
             <h3>🚀 إدارة الإطلاق الحقيقي</h3>
             <label>وقت الإطلاق الفعلي:</label>
             <input type="datetime-local" id="startTime">
-            <input id="city" placeholder="ابحث عن مدينة الوصول..." oninput="searchCity(this.value)">
-            <div id="suggestions"></div>
-            <button onclick="initFlight()">تحديث المحاكاة الزمنية 🕊️</button>
-            <button onclick="clearData()" style="background:#ef4444; margin-top:5px; color:white">إعادة ضبط السباق</button>
+            
+            <div class="search-container">
+                <input id="startInput" placeholder="بحث عن نقطة الإطلاق..." oninput="searchLoc(this.value, 'start')">
+                <div id="sugStart"></div>
+            </div>
+
+            <div class="search-container">
+                <input id="endInput" placeholder="بحث عن مدينة الوصول..." oninput="searchLoc(this.value, 'end')">
+                <div id="sugEnd"></div>
+            </div>
+
+            <button onclick="initSim()">تحديث المحاكاة الزمنية 🕊️</button>
+            <button onclick="resetSim()" style="background:#ef4444; color:white; margin-top:8px">إعادة ضبط كاملة</button>
         </div>
 
         <div class="panel">
             <h3>🏆 نتائج المتسابقين</h3>
             <input id="rName" placeholder="اسم المتسابق">
-            <input id="rDist" type="number" placeholder="المسافة (Km)">
+            <input id="rDist" type="number" placeholder="المسافة المقطوعة (Km)">
+            <label>وقت الوصول:</label>
             <input id="rTime" type="time">
-            <button onclick="addRacer()" style="background:#22c55e">تسجيل النتيجة</button>
+            <button onclick="addRacer()" style="background:var(--accent); color:white">تسجيل النتيجة وحساب السرعة</button>
         </div>
     </div>
 
-    <div class="panel" style="margin-top:15px">
-        <h3>📊 ترتيب النتائج (محفوظ)</h3>
+    <div class="panel" style="margin-top:20px">
+        <h3>📊 لوحة المتصدرين (مزامنة فورية)</h3>
         <table>
             <thead>
-                <tr><th>الترتيب</th><th>الاسم</th><th>المسافة</th><th>السرعة (م/د)</th></tr>
+                <tr><th>الرتبة</th><th>الاسم</th><th>المسافة</th><th>السرعة (م/د)</th></tr>
             </thead>
-            <tbody id="results"></tbody>
+            <tbody id="resultsBody"></tbody>
         </table>
     </div>
 </div>
@@ -70,137 +84,153 @@
 let map = L.map('map').setView([33.5, -7.5], 6);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-let pigeon, routeLine, endPoint, flightData = {};
-const BASE_AIR_SPEED = 1150; // سرعة الحمام المتوسطة
+let pigeon, pathLine, startPoint, endPoint, racers = [];
+const AVG_SPEED = 1180; // متوسط سرعة الحمام م/د
 
-// وظائف الحفظ المستمر
-function saveData() {
-    localStorage.setItem('pigeonFlight', JSON.stringify({
-        endPoint,
-        startTime: document.getElementById('startTime').value,
-        city: document.getElementById('city').value,
-        racers: racers
-    }));
+// البحث عن المواقع
+async function searchLoc(q, type) {
+    const box = type === 'start' ? document.getElementById('sugStart') : document.getElementById('sugEnd');
+    if(q.length < 3) { box.style.display = 'none'; return; }
+    
+    try {
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=5`);
+        const d = await r.json();
+        box.style.display = 'block';
+        box.innerHTML = d.map(x => `
+            <div class="sug-item" onclick="selectLoc(${x.lat}, ${x.lon}, '${x.display_name}', '${type}')">
+                ${x.display_name}
+            </div>`).join('');
+    } catch(e) { console.error("Search error"); }
 }
 
-function loadData() {
-    const saved = localStorage.getItem('pigeonFlight');
-    if(saved) {
-        const data = JSON.parse(saved);
-        endPoint = data.endPoint;
-        document.getElementById('startTime').value = data.startTime;
-        document.getElementById('city').value = data.city;
-        racers = data.racers || [];
-        updateRacerTable();
-        if(endPoint) initFlight();
+function selectLoc(lat, lon, name, type) {
+    if(type === 'start') {
+        startPoint = {lat, lng: lon};
+        document.getElementById('startInput').value = name.split(',')[0];
+        document.getElementById('sugStart').style.display = 'none';
+    } else {
+        endPoint = {lat, lng: lon};
+        document.getElementById('endInput').value = name.split(',')[0];
+        document.getElementById('sugEnd').style.display = 'none';
     }
+    saveState();
 }
 
-async function searchCity(q) {
-    const sugBox = document.getElementById('suggestions');
-    if(q.length < 3) { sugBox.style.display = 'none'; return; }
-    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=5`);
-    const d = await r.json();
-    sugBox.style.display = 'block';
-    sugBox.innerHTML = d.map(x => `<div class="sug" onclick="pickCity(${x.lat},${x.lon},'${x.display_name}')">${x.display_name}</div>`).join('');
-}
-
-function pickCity(lat, lon, name) {
-    document.getElementById('city').value = name.split(',')[0];
-    document.getElementById('suggestions').style.display = 'none';
-    endPoint = {lat, lng: lon};
-    saveData();
-}
-
-function getDist(lat1, lon1, lat2, lon2) {
+// حساب المسافة
+function calcDist(p1, p2) {
     const R = 6371000;
-    const dLat = (lat2-lat1)*Math.PI/180;
-    const dLon = (lon2-lon1)*Math.PI/180;
-    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+    const dLat = (p2.lat - p1.lat) * Math.PI / 180;
+    const dLon = (p2.lng - p1.lng) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(p1.lat*Math.PI/180)*Math.cos(p2.lat*Math.PI/180)*Math.sin(dLon/2)**2;
     return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-async function initFlight() {
-    if(!endPoint || !document.getElementById('startTime').value) return;
+// حفظ الحالة
+function saveState() {
+    const state = {
+        startPoint, endPoint,
+        startTime: document.getElementById('startTime').value,
+        startName: document.getElementById('startInput').value,
+        endName: document.getElementById('endInput').value,
+        racers
+    };
+    localStorage.setItem('flightProState', JSON.stringify(state));
+}
+
+// المحاكاة
+function initSim() {
+    if(!startPoint || !endPoint || !document.getElementById('startTime').value) return;
+
+    const totalD = calcDist(startPoint, endPoint);
+    document.getElementById('distDisplay').innerText = (totalD/1000).toFixed(2) + " Km";
+
+    if(pathLine) map.removeLayer(pathLine);
+    pathLine = L.polyline([startPoint, endPoint], {color: 'rgba(0, 212, 255, 0.3)', weight: 2, dashArray: '10, 10'}).addTo(map);
+
+    if(pigeon) map.removeLayer(pigeon);
+    pigeon = L.marker(startPoint, {icon: L.divIcon({html: `<div class="bird-icon">🕊️</div>`, className: ''})}).addTo(map);
     
-    const startPoint = {lat: 33.5731, lng: -7.5898}; // الدار البيضاء كمثال
-    const totalD = getDist(startPoint.lat, startPoint.lng, endPoint.lat, endPoint.lng);
-    document.getElementById('dist').innerText = (totalD/1000).toFixed(2) + " Km";
+    map.fitBounds(pathLine.getBounds(), {padding: [50, 50]});
 
-    if(routeLine) map.removeLayer(routeLine);
-    routeLine = L.polyline([startPoint, endPoint], {color: '#00d4ff', weight: 1, opacity: 0.5}).addTo(map);
-    
-    if(!pigeon) {
-        pigeon = L.marker(startPoint, {icon: L.divIcon({html: `<div id="bird">🕊️</div>`, className: ''})}).addTo(map);
-    }
-
-    // جلب الرياح (تبسيط للعملية)
-    const windSpeed = 150; // م/د
-    document.getElementById('windStat').innerText = windSpeed + " m/m";
-
-    function updatePosition() {
+    function step() {
         const now = new Date();
-        const start = new Date(document.getElementById('startTime').value);
-        const elapsedMin = (now - start) / 60000;
+        const startT = new Date(document.getElementById('startTime').value);
+        const elapsed = (now - startT) / 60000;
 
-        if (elapsedMin < 0) {
-            document.getElementById('status').innerText = "في انتظار الإطلاق...";
-            pigeon.setLatLng(startPoint);
+        if(elapsed < 0) {
+            document.getElementById('statusDisplay').innerText = "بانتظار الإطلاق";
             return;
         }
 
-        // حساب المسار المنحني (تجنب المسارات البحرية المباشرة)
-        // إضافة انحناء بسيط بناءً على الوقت (Curved Path Logic)
-        let progress = (elapsedMin * BASE_AIR_SPEED) / totalD;
+        let progress = (elapsed * AVG_SPEED) / totalD;
         if(progress > 1) progress = 1;
 
-        // حساب الموقع الحالي
+        // منطق الانحناء لتجنب المسارات غير الواقعية
         let currentLat = startPoint.lat + (endPoint.lat - startPoint.lat) * progress;
         let currentLng = startPoint.lng + (endPoint.lng - startPoint.lng) * progress;
         
-        // محاكاة تجنب البحر (إزاحة بسيطة إذا كان المسار يبتعد)
-        let offset = Math.sin(progress * Math.PI) * 0.05; 
-        pigeon.setLatLng([currentLat + offset, currentLng]);
+        // "تأثير اليابسة": انحراف بسيط لجعل المسار يبدو كأنه يتجنب خطاً مستقيماً بحرياً
+        let curve = Math.sin(progress * Math.PI) * 0.08; 
+        pigeon.setLatLng([currentLat + curve, currentLng]);
 
-        document.getElementById('status').innerText = progress >= 1 ? "وصل للوجهة" : `قطع ${(progress*100).toFixed(1)}%`;
+        document.getElementById('statusDisplay').innerText = progress >= 1 ? "وصلت الحمامة" : `طيران: ${(progress*100).toFixed(1)}%`;
         
-        if(progress < 1) requestAnimationFrame(updatePosition);
+        if(progress < 1) requestAnimationFrame(step);
     }
-    updatePosition();
+    step();
+    saveState();
 }
 
-let racers = [];
 function addRacer() {
     const name = document.getElementById('rName').value;
     const dKm = parseFloat(document.getElementById('rDist').value);
     const arrT = document.getElementById('rTime').value;
     const startT = document.getElementById('startTime').value;
 
-    if(!name || !dKm || !arrT || !startT) return alert("البيانات ناقصة");
+    if(!name || !dKm || !arrT || !startT) return alert("البيانات غير كاملة");
 
     let start = new Date(startT);
     let end = new Date(startT.split('T')[0] + 'T' + arrT);
-    if (end < start) end.setDate(end.getDate() + 1);
+    if(end < start) end.setDate(end.getDate() + 1);
 
     let speed = (dKm * 1000) / ((end - start) / 60000);
-    racers.push({ name, dKm, speed });
+    racers.push({name, dKm, speed});
     racers.sort((a, b) => b.speed - a.speed);
-    updateRacerTable();
-    saveData();
+    
+    updateTable();
+    saveState();
 }
 
-function updateRacerTable() {
-    document.getElementById('results').innerHTML = racers.map((r, i) => `
-        <tr><td>${i+1}</td><td>${r.name}</td><td>${r.dKm} Km</td><td style="color:#00ff88"><b>${r.speed.toFixed(2)}</b></td></tr>
+function updateTable() {
+    document.getElementById('resultsBody').innerHTML = racers.map((r, i) => `
+        <tr>
+            <td>${i+1}</td>
+            <td>${r.name}</td>
+            <td>${r.dKm} Km</td>
+            <td style="color:var(--accent); font-weight:bold">${r.speed.toFixed(2)}</td>
+        </tr>
     `).join('');
 }
 
-function clearData() {
-    localStorage.removeItem('pigeonFlight');
+function resetSim() {
+    localStorage.removeItem('flightProState');
     location.reload();
 }
 
-window.onload = loadData;
+window.onload = () => {
+    const saved = localStorage.getItem('flightProState');
+    if(saved) {
+        const data = JSON.parse(saved);
+        startPoint = data.startPoint;
+        endPoint = data.endPoint;
+        racers = data.racers || [];
+        document.getElementById('startTime').value = data.startTime;
+        document.getElementById('startInput').value = data.startName || '';
+        document.getElementById('endInput').value = data.endName || '';
+        updateTable();
+        if(startPoint && endPoint) initSim();
+    }
+};
 </script>
 </body>
 </html>
