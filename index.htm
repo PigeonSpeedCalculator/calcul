@@ -2,7 +2,7 @@
 <html lang="ar">
 <head>
 <meta charset="UTF-8">
-<title>REAL FLIGHT ENGINE</title>
+<title>ELMAKKAOUY REAL FLIGHT PRO</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -18,33 +18,28 @@ width:100%;padding:10px;margin-top:8px;
 background:#0b1220;border:1px solid #1f2937;
 color:white;border-radius:6px
 }
-button{background:#00d4ff;color:black;font-weight:bold}
+button{background:#00d4ff;color:black;font-weight:bold;cursor:pointer}
 
 .stat{margin:6px 0}
 .stat b{color:#00ff88}
 
-/* إزالة أي خلفية */
+/* إزالة خلفية الأيقونة */
 .leaflet-div-icon{
 background:transparent!important;
 border:none!important;
 }
 
-/* جناحين */
-.wing{
-display:inline-block;
-font-size:28px;
-animation:flap 0.35s infinite ease-in-out alternate;
-}
-
+/* رفرفة */
 @keyframes flap{
-from{transform:scaleY(1)}
-to{transform:scaleY(0.6)}
+from{transform:scale(1)}
+to{transform:scale(1.15)}
 }
 
-#birdWrap{
-display:flex;
-align-items:center;
-justify-content:center;
+#bird{
+font-size:30px;
+display:inline-block;
+animation:flap 0.35s infinite alternate ease-in-out;
+transform-origin:center;
 }
 </style>
 </head>
@@ -56,26 +51,32 @@ justify-content:center;
 <div class="panel">
 <input type="datetime-local" id="startTime">
 <input id="startCoord" value="33.421265,-7.812173">
-<input id="city" value="kenitra">
+<input id="city" placeholder="اكتب مدينة الوصول">
 <button onclick="startFlight()">بدء التتبع 🕊️</button>
 
 <hr>
 
-<div class="stat">المسافة: <b id="dist">--</b> Km</div>
-<div class="stat">السرعة: <b id="speed">--</b> m/min</div>
-<div class="stat">الرياح: <b id="wind">--</b> m/min</div>
+<div class="stat">📏 المسافة: <b id="dist">--</b> Km</div>
+<div class="stat">🚀 السرعة: <b id="speed">--</b> m/min</div>
+<div class="stat">🌬️ الرياح: <b id="wind">--</b> m/min</div>
+<div class="stat">🧭 الاتجاه: <b id="heading">--</b> °</div>
+
 </div>
 
 <script>
 
+/* ================== إعداد الخريطة ================== */
+
 let map = L.map('map').setView([33.4,-7.8],7);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-let pigeon, routeLine, timer;
+let pigeon, routeLine, animationId;
 let startPoint, endPoint;
 let totalDistance=0;
 
-const AIR_SPEED=1200;
+const AIR_SPEED = 1200; // m/min سرعة سباق
+
+/* ================== أدوات رياضية ================== */
 
 function rad(x){return x*Math.PI/180}
 function deg(x){return x*180/Math.PI}
@@ -96,19 +97,26 @@ Math.sin(rad(a))*Math.cos(rad(c))*Math.cos(rad(d-b));
 return (deg(Math.atan2(y,x))+360)%360;
 }
 
+/* ================== جلب المدينة ================== */
+
 async function getCoords(name){
-const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${name}&limit=1`);
+const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(name)}&limit=1`);
 const d=await r.json();
-if(!d.length){alert("المدينة غير موجودة");return null;}
+if(!d.length){
+alert("المدينة غير موجودة");
+return null;
+}
 return [parseFloat(d[0].lat),parseFloat(d[0].lon)];
 }
+
+/* ================== جلب الرياح ================== */
 
 async function getWind(lat,lon){
 try{
 const r=await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=992e2b79f5e3386bda09d14ff4807f9d`);
 const d=await r.json();
 return{
-speed:(d.wind?.speed||0)*60,
+speed:(d.wind?.speed||0)*60, // m/min
 deg:d.wind?.deg||0
 };
 }catch{
@@ -116,9 +124,12 @@ return{speed:0,deg:0};
 }
 }
 
+/* ================== بدء المحاكاة ================== */
+
 async function startFlight(){
 
-if(timer) clearInterval(timer);
+cancelAnimationFrame(animationId);
+
 if(!startTime.value) return alert("حدد وقت الانطلاق");
 
 const s=startCoord.value.split(',');
@@ -139,54 +150,77 @@ if(pigeon) map.removeLayer(pigeon);
 
 pigeon=L.marker(startPoint,{
 icon:L.divIcon({
-html:`<div id="birdWrap">🕊️</div>`,
-iconSize:[30,30]
+html:`<div id="bird">🕊️</div>`,
+iconSize:[30,30],
+className:''
 })
 }).addTo(map);
 
+map.fitBounds(routeLine.getBounds(),{padding:[50,50]});
+
 const wind=await getWind(startPoint.lat,startPoint.lng);
-document.getElementById("wind").innerText=wind.speed.toFixed(1);
+windEl=document.getElementById("wind");
+windEl.innerText=wind.speed.toFixed(1);
 
-const routeBearing=bearing(startPoint.lat,startPoint.lng,endPoint.lat,endPoint.lng);
+/* موقع حالي */
+let current={
+lat:startPoint.lat,
+lng:startPoint.lng
+};
 
-const startMoment=new Date(startTime.value).getTime();
+let lastTime=performance.now();
 
-timer=setInterval(()=>{
+function animate(now){
 
-const elapsed=(Date.now()-startMoment)/60000;
-if(elapsed<0) return;
+let dt=(now-lastTime)/60000;
+lastTime=now;
 
-const rel=rad(wind.deg-routeBearing);
+/* اتجاه نحو الهدف */
+let routeBear=bearing(current.lat,current.lng,endPoint.lat,endPoint.lng);
 
-const windX=wind.speed*Math.cos(rel);
-const windY=wind.speed*Math.sin(rel);
+/* متجه هوائي */
+let airX=AIR_SPEED*Math.cos(rad(routeBear));
+let airY=AIR_SPEED*Math.sin(rad(routeBear));
 
-const groundSpeed=Math.sqrt((AIR_SPEED+windX)**2+windY**2);
+/* متجه الرياح */
+let windX=wind.speed*Math.cos(rad(wind.deg));
+let windY=wind.speed*Math.sin(rad(wind.deg));
+
+/* متجه أرضي */
+let groundX=airX+windX;
+let groundY=airY+windY;
+
+let groundSpeed=Math.sqrt(groundX**2+groundY**2);
+
 document.getElementById("speed").innerText=groundSpeed.toFixed(1);
 
-const traveled=groundSpeed*elapsed;
-const p=traveled/totalDistance;
+/* الاتجاه الحقيقي */
+let heading=deg(Math.atan2(groundY,groundX));
+document.getElementById("heading").innerText=heading.toFixed(0);
 
-if(p>=1){
-pigeon.setLatLng(endPoint);
-clearInterval(timer);
+/* تحريك */
+let metersStep=groundSpeed*dt;
+let ratio=metersStep/totalDistance;
+
+current.lat+=(endPoint.lat-current.lat)*ratio;
+current.lng+=(endPoint.lng-current.lng)*ratio;
+
+pigeon.setLatLng([current.lat,current.lng]);
+
+/* تدوير */
+document.getElementById("bird").style.transform=
+`rotate(${heading}deg) scale(${1+0.05*Math.sin(Date.now()/80)})`;
+
+/* تحقق الوصول */
+if(haversine(current.lat,current.lng,endPoint.lat,endPoint.lng)<5){
 document.getElementById("speed").innerText="وصل ✔";
 return;
 }
 
-const lat=startPoint.lat+(endPoint.lat-startPoint.lat)*p;
-const lng=startPoint.lng+(endPoint.lng-startPoint.lng)*p;
-
-pigeon.setLatLng([lat,lng]);
-
-/* تدوير باتجاه المسار */
-const wrap=document.getElementById("birdWrap");
-if(wrap){
-wrap.style.transform=`rotate(${routeBearing}deg)`;
+animationId=requestAnimationFrame(animate);
 }
 
-},50);
-
+animationId=requestAnimationFrame(animate);
 }
 
 </script>
