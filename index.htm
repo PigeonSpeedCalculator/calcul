@@ -2,23 +2,23 @@
 <html lang="ar">
 <head>
 <meta charset="UTF-8">
-<title>ELMAKKAOUY REAL FLIGHT PRO</title>
+<title>ELMAKKAOUY LIVE SIMULATION</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
-body{margin:0;background:#0b0f19;color:#fff;font-family:Arial}
-#map{height:400px}
-.panel{padding:15px;background:#161b2a}
+body{margin:0;background:#0f172a;color:white;font-family:Arial}
+#map{height:420px}
+.panel{padding:15px;background:#111827}
 input,button{
 width:100%;padding:10px;margin-top:8px;
-background:#0b0f19;border:1px solid #2d3343;
-color:#fff;border-radius:6px
+background:#0b1220;border:1px solid #1f2937;
+color:white;border-radius:6px
 }
-button{background:#00d4ff;color:#000;font-weight:bold;cursor:pointer}
-.stat{margin:6px 0;font-size:14px}
+button{background:#00d4ff;color:black;font-weight:bold}
+.stat{margin:6px 0}
 .stat b{color:#00ff88}
 </style>
 </head>
@@ -30,36 +30,32 @@ button{background:#00d4ff;color:#000;font-weight:bold;cursor:pointer}
 <div class="panel">
 
 <input type="datetime-local" id="startTime">
-<input id="startCoord" value="33.2722,-8.3732">
-<input id="city" placeholder="اكتب مدينة الوصول">
-<button onclick="startRace()">بدء التتبع 🕊️</button>
+<input id="startCoord" value="33.421265,-7.812173">
+<input id="city" value="kenitra">
+<button onclick="startFlight()">بدء التتبع 🕊️</button>
 
 <hr>
 
-<div class="stat">📏 المسافة: <b id="dist">-- Km</b></div>
-<div class="stat">🌬️ الرياح: <b id="wind">-- m/min</b></div>
-<div class="stat">🌡️ الحرارة: <b id="temp">-- °C</b></div>
-<div class="stat">🚀 السرعة الأرضية: <b id="speed">-- m/min</b></div>
-<div class="stat">⏱️ الزمن المنقضي: <b id="elapsed">-- min</b></div>
+<div class="stat">المسافة: <b id="dist">--</b> Km</div>
+<div class="stat">السرعة: <b id="speed">--</b> m/min</div>
+<div class="stat">الرياح: <b id="wind">--</b> m/min</div>
+<div class="stat">الزمن: <b id="elapsed">--</b> min</div>
 
 </div>
 
 <script>
-let map = L.map('map').setView([33.2722,-8.3732],7);
+
+let map = L.map('map').setView([33.4,-7.8],7);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-let startMarker = L.marker([33.2722,-8.3732]).addTo(map);
-let pigeon, destPoint;
-
+let pigeon, routeLine;
+let startPoint, endPoint;
 let totalDistance = 0;
-let windSpeed = 0;
-let windDeg = 0;
-let temperature = 20;
+let interval;
 
 const AIR_SPEED = 1200; // m/min
-const MIN_SPEED = 500;  // حد أدنى منطقي
 
-function rad(d){return d*Math.PI/180}
+function rad(x){return x*Math.PI/180}
 
 function bearing(a,b,c,d){
 const y=Math.sin(rad(d-b))*Math.cos(rad(c));
@@ -68,143 +64,112 @@ Math.sin(rad(a))*Math.cos(rad(c))*Math.cos(rad(d-b));
 return (Math.atan2(y,x)*180/Math.PI+360)%360;
 }
 
-/* ========= بحث المدينة مع معالجة أخطاء ========= */
-async function getCityCoords(name){
-try{
-const res = await fetch(
-`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(name)}&limit=1&addressdetails=1`
-);
-const data = await res.json();
-if(!data.length) throw "مدينة غير موجودة";
-return [parseFloat(data[0].lat),parseFloat(data[0].lon)];
-}catch(e){
-alert("تعذر العثور على المدينة");
-return null;
-}
-}
-
-/* ========= الطقس مع تحقق ========= */
-async function loadWeather(lat,lon){
-try{
-const r = await fetch(
-`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=992e2b79f5e3386bda09d14ff4807f9d&units=metric`
-);
+async function getCoords(city){
+const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${city}&limit=1`);
 const d = await r.json();
+if(!d.length){ alert("المدينة غير موجودة"); return null; }
+return [parseFloat(d[0].lat),parseFloat(d[0].lon)];
+}
 
-windSpeed = (d.wind?.speed || 0) * 60;
-windDeg = d.wind?.deg || 0;
-temperature = d.main?.temp || 20;
-
-wind.innerText = windSpeed.toFixed(1);
-temp.innerText = temperature;
-
+async function getWind(lat,lon){
+try{
+const r = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=992e2b79f5e3386bda09d14ff4807f9d&units=metric`);
+const d = await r.json();
+return {
+speed:(d.wind?.speed||0)*60,
+deg:d.wind?.deg||0
+};
 }catch{
-windSpeed = 0;
-temperature = 20;
+return {speed:0,deg:0};
 }
 }
 
-/* ========= بدء السباق ========= */
-async function startRace(){
+async function startFlight(){
 
-if(!startTime.value){
-alert("حدد توقيت الانطلاق");
-return;
-}
+if(interval) clearInterval(interval);
+
+if(!startTime.value){ alert("حدد وقت الانطلاق"); return; }
 
 const startMoment = new Date(startTime.value).getTime();
 
 const s = startCoord.value.split(',');
-startMarker.setLatLng([+s[0],+s[1]]);
+startPoint = L.latLng(+s[0],+s[1]);
 
-const coords = await getCityCoords(city.value);
+const coords = await getCoords(city.value);
 if(!coords) return;
 
-destPoint = L.latLng(coords[0],coords[1]);
+endPoint = L.latLng(coords[0],coords[1]);
 
-await loadWeather(s[0],s[1]);
+map.setView(startPoint,7);
 
-totalDistance = map.distance(startMarker.getLatLng(),destPoint);
+totalDistance = map.distance(startPoint,endPoint);
 dist.innerText = (totalDistance/1000).toFixed(3);
 
-if(pigeon) map.removeLayer(pigeon);
+const windData = await getWind(startPoint.lat,startPoint.lng);
+wind.innerText = windData.speed.toFixed(1);
 
-pigeon = L.marker(startMarker.getLatLng(),{
+const routeBearing = bearing(startPoint.lat,startPoint.lng,endPoint.lat,endPoint.lng);
+
+if(routeLine) map.removeLayer(routeLine);
+routeLine = L.polyline([startPoint,endPoint],{color:'#00ffff'}).addTo(map);
+
+if(pigeon) map.removeLayer(pigeon);
+pigeon = L.marker(startPoint,{
 icon:L.divIcon({
 html:"<div id='bird'>🕊️</div>",
 iconSize:[40,40]
 })
 }).addTo(map);
 
-/* رفرفة */
-setInterval(()=>{
-const b=document.getElementById("bird");
-if(b){
-b.style.transform=`translateY(${Math.sin(Date.now()/90)*5}px)`;
-}
-},50);
-
-animateFlight(startMoment);
-}
-
-/* ========= محاكاة فيزيائية متقدمة ========= */
-function animateFlight(startMoment){
-
 let traveled = 0;
-let last = performance.now();
 
-const start = startMarker.getLatLng();
-const end = destPoint;
-const routeBearing = bearing(start.lat,start.lng,end.lat,end.lng);
+interval = setInterval(()=>{
 
-function step(now){
+const now = Date.now();
+const elapsedMin = (now - startMoment)/60000;
 
-const dt = (now-last)/60000;
-last = now;
-
-/* تأثير الحرارة */
-const tempFactor = 1 - ((temperature-20)*0.004);
-
-/* تأثير الرياح الأمامية */
-const rel = rad(windDeg - routeBearing);
-const forwardWind = windSpeed * Math.cos(rel);
-
-/* انحراف جانبي */
-const crossWind = windSpeed * Math.sin(rel);
-
-/* السرعة الأرضية */
-let groundSpeed = (AIR_SPEED * tempFactor) + forwardWind;
-groundSpeed = Math.max(MIN_SPEED,groundSpeed);
-
-speed.innerText = groundSpeed.toFixed(1);
-
-traveled += groundSpeed * dt;
-
-/* الزمن */
-const elapsedMin = (Date.now()-startMoment)/60000;
-elapsed.innerText = elapsedMin.toFixed(2);
-
-let p = traveled / totalDistance;
-
-if(p>=1){
-pigeon.setLatLng(end);
-speed.innerText="وصل ✔";
+if(elapsedMin < 0){
+elapsed.innerText = "لم ينطلق بعد";
 return;
 }
 
-/* انحراف بسيط واقعي */
-const drift = crossWind * 0.000002 * traveled;
+elapsed.innerText = elapsedMin.toFixed(2);
+
+const rel = rad(windData.deg - routeBearing);
+const windForward = windData.speed * Math.cos(rel);
+
+const groundSpeed = AIR_SPEED + windForward;
+speed.innerText = groundSpeed.toFixed(1);
+
+traveled = groundSpeed * elapsedMin;
+
+let progress = traveled / totalDistance;
+
+if(progress >= 1){
+pigeon.setLatLng(endPoint);
+speed.innerText = "وصل ✔";
+clearInterval(interval);
+return;
+}
+
+/* انحراف جانبي */
+const drift = windData.speed * Math.sin(rel) * 0.000002 * traveled;
 
 pigeon.setLatLng([
-start.lat+(end.lat-start.lat)*p + drift,
-start.lng+(end.lng-start.lng)*p
+startPoint.lat+(endPoint.lat-startPoint.lat)*progress + drift,
+startPoint.lng+(endPoint.lng-startPoint.lng)*progress
 ]);
 
-requestAnimationFrame(step);
+/* رفرفة */
+const b=document.getElementById("bird");
+if(b){
+b.style.transform=`translateY(${Math.sin(Date.now()/80)*4}px)`;
 }
 
-requestAnimationFrame(step);
+},50);
+
 }
+
 </script>
 
 </body>
