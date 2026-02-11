@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>ELMAKKAOUY FLIGHT AI PRO - Real Physics</title>
+    <title>ELMAKKAOUY FLIGHT AI PRO - m/min Edition</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <style>
         :root { --primary: #00d4ff; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --danger: #ff4d4d; }
@@ -19,6 +19,7 @@
         .warning { color: var(--danger); font-size: 0.8em; font-weight: bold; margin-top: 5px; display: none; }
         table { width: 100%; margin-top: 15px; border-collapse: collapse; }
         th, td { padding: 10px; border-bottom: 1px solid #444; text-align: center; }
+        .bird-icon { font-size: 24px; filter: drop-shadow(0 0 5px var(--primary)); }
     </style>
 </head>
 <body>
@@ -26,9 +27,9 @@
 <div id="map"></div>
 
 <div class="stats-bar">
-    <div class="stat-item">🌬️ رياح حقيقية<b id="st-wind-km">0 km/h</b><span id="wind-dir">--</span></div>
-    <div class="stat-item">🚀 سرعة الحمامة (النسبية)<b id="st-airspeed">70 km/h</b><span>القدرة الجسدية</span></div>
-    <div class="stat-item">🌍 السرعة الأرضية (الواقعية)<b id="st-groundspeed">0 km/h</b><span id="speed-impact">متأثرة بالجو</span></div>
+    <div class="stat-item">🌬️ سرعة الرياح<b id="st-wind-km">0 km/h</b><span id="wind-dir">--</span></div>
+    <div class="stat-item">🚀 سرعة الحمامة (النسبية)<b id="st-airspeed">1166.67 m/min</b><span>القدرة الذاتية</span></div>
+    <div class="stat-item">🌍 السرعة الأرضية (الواقعية)<b id="st-groundspeed">0 m/min</b><span id="speed-impact">تأثير الجو الحقيقي</span></div>
     <div class="stat-item">📏 المسافة المتبقية<b id="st-rem-dist">--</b><span>Km</span></div>
 </div>
 
@@ -39,22 +40,22 @@
             <input id="startInput" placeholder="نقطة الإطلاق (بحث أو إحداثيات)" oninput="handleSearch(this.value, 'start')">
             <input id="endInput" placeholder="نقطة الوصول (بحث أو إحداثيات)" oninput="handleSearch(this.value, 'end')">
             <input type="datetime-local" id="startTime">
-            <div id="fog-warning" class="warning">⚠️ تنبيه: رطوبة عالية (ضباب محتمل) قد يعيق الملاحة!</div>
+            <div id="fog-warning" class="warning">⚠️ تنبيه: رطوبة عالية جداً قد تعيق المسار!</div>
             <button onclick="startSimulation()">بدء تتبع الرحلة الواقعية 🕊️</button>
         </div>
 
         <div class="panel">
-            <h3>📊 ترتيب المتسابقين (حساب رسمي)</h3>
+            <h3>📊 ترتيب المتسابقين (النتائج الرسمية)</h3>
             <input id="rName" placeholder="اسم المتسابق">
             <input id="rDist" type="number" placeholder="المسافة المقطوعة (Km)">
             <input id="rTime" type="time">
-            <button onclick="addRacer()" style="background:#22c55e; color:white">تسجيل وحساب م/د</button>
+            <button onclick="addRacer()" style="background:#22c55e; color:white">تسجيل النتيجة (m/min)</button>
         </div>
     </div>
 
     <div class="panel" style="margin-top:15px">
         <table>
-            <thead><tr><th>#</th><th>الاسم</th><th>المسافة</th><th>السرعة (م/د)</th><th>الحالة الجوية</th></tr></thead>
+            <thead><tr><th>#</th><th>الاسم</th><th>المسافة</th><th>السرعة (م/د)</th><th>الرطوبة</th></tr></thead>
             <tbody id="results"></tbody>
         </table>
     </div>
@@ -67,46 +68,48 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').add
 
 let pigeon, pathLine, startPt, endPt, racers = [];
 let weatherData = { windKm: 0, deg: 0, hum: 0 };
-const PIGEON_BASE_KMH = 70; // السرعة النسبية للحمامة (70 كم/ساعة في الجو الساكن)
+const PIGEON_BASE_KMH = 70; // السرعة الأساسية (70 كم/س)
 
-// حساب السرعة الأرضية الواقعية (Ground Speed)
+// تحويل من كم/ساعة إلى م/دقيقة
+function toMmin(kmh) {
+    return (kmh * 1000) / 60;
+}
+
 function calculatePhysics(airspeedKm, windKm, windDeg, flightDeg) {
     const angleRad = (windDeg - flightDeg) * Math.PI / 180;
-    // التأثير الطولي (دفع أو مقاومة)
     const tailwind = Math.cos(angleRad) * windKm;
-    // التأثير الجانبي (انحراف)
     const crosswind = Math.sin(angleRad) * windKm;
-    
-    // السرعة الأرضية هي مجموع سرعة الحمامة + دفع الرياح
     let groundSpeed = airspeedKm + tailwind;
-    
-    // تصحيح الانحراف (الحمامة تميل بجسدها لتعويض الرياح الجانبية)
     groundSpeed = Math.sqrt(Math.pow(groundSpeed, 2) - Math.pow(crosswind, 0.5));
-    
-    return groundSpeed > 10 ? groundSpeed : 10; // الحد الأدنى للسرعة
+    return groundSpeed > 5 ? groundSpeed : 5;
 }
 
 async function handleSearch(val, type) {
     if(val.length < 3) return;
-    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${val}&limit=1`);
-    const d = await r.json();
-    if(d[0]) {
-        const pt = {lat: parseFloat(d[0].lat), lng: parseFloat(d[0].lon)};
-        if(type === 'start') startPt = pt; else endPt = pt;
-        getWeather(pt.lat, pt.lng);
-    }
+    try {
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${val}&limit=1`);
+        const d = await r.json();
+        if(d[0]) {
+            const pt = {lat: parseFloat(d[0].lat), lng: parseFloat(d[0].lon)};
+            if(type === 'start') startPt = pt; else endPt = pt;
+            getWeather(pt.lat, pt.lng);
+        }
+    } catch(e) {}
 }
 
 async function getWeather(lat, lon) {
-    const r = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=992e2b79f5e3386bda09d14ff4807f9d`);
-    const d = await r.json();
-    weatherData = {
-        windKm: (d.wind.speed * 3.6), // تحويل من m/s إلى km/h
-        deg: d.wind.deg,
-        hum: d.main.humidity
-    };
-    document.getElementById('st-wind-km').innerText = weatherData.windKm.toFixed(1) + " km/h";
-    document.getElementById('fog-warning').style.display = weatherData.hum > 85 ? 'block' : 'none';
+    try {
+        const r = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=992e2b79f5e3386bda09d14ff4807f9d`);
+        const d = await r.json();
+        weatherData = {
+            windKm: (d.wind.speed * 3.6), // الرياح تظل بالكيلومتر/ساعة
+            deg: d.wind.deg,
+            hum: d.main.humidity
+        };
+        document.getElementById('st-wind-km').innerText = weatherData.windKm.toFixed(1) + " km/h";
+        document.getElementById('wind-dir').innerText = `الاتجاه: ${weatherData.deg}°`;
+        document.getElementById('fog-warning').style.display = weatherData.hum > 85 ? 'block' : 'none';
+    } catch(e) {}
 }
 
 function startSimulation() {
@@ -115,16 +118,22 @@ function startSimulation() {
     const flightDeg = Math.atan2(endPt.lat - startPt.lat, endPt.lng - startPt.lng) * 180 / Math.PI;
     const groundSpeedKm = calculatePhysics(PIGEON_BASE_KMH, weatherData.windKm, weatherData.deg, flightDeg);
     
-    document.getElementById('st-groundspeed').innerText = groundSpeedKm.toFixed(1) + " km/h";
-    document.getElementById('speed-impact').innerText = groundSpeedKm > PIGEON_BASE_KMH ? "رياح دافعة ⚡" : "رياح معاكسة 🐢";
+    // السرعة الأرضية تُعرض بالمتر/دقيقة
+    const groundSpeedMmin = toMmin(groundSpeedKm);
+    document.getElementById('st-groundspeed').innerText = groundSpeedMmin.toFixed(2) + " m/min";
+    document.getElementById('speed-impact').innerText = groundSpeedKm > PIGEON_BASE_KMH ? "مساعدة هوائية ⚡" : "مقاومة هوائية 🐢";
 
     if(pathLine) map.removeLayer(pathLine);
-    pathLine = L.polyline([startPt, endPt], {color: 'cyan', weight: 1}).addTo(map);
-    if(!pigeon) pigeon = L.marker(startPt, {icon: L.divIcon({html: '🕊️', className: 'bird-icon'})}).addTo(map);
+    pathLine = L.polyline([startPt, endPt], {color: '#00d4ff', weight: 1.5}).addTo(map);
+    
+    if(pigeon) map.removeLayer(pigeon);
+    pigeon = L.marker(startPt, {icon: L.divIcon({html: '<div class="bird-icon">🕊️</div>', className: ''})}).addTo(map);
+
+    map.fitBounds(pathLine.getBounds(), {padding: [50, 50]});
 
     function animate() {
         const elapsedH = (new Date() - new Date(document.getElementById('startTime').value)) / 3600000;
-        if(elapsedH < 0) return requestAnimationFrame(animate);
+        if(elapsedH < 0) { requestAnimationFrame(animate); return; }
 
         const totalD = map.distance(startPt, endPt) / 1000;
         let progress = (elapsedH * groundSpeedKm) / totalD;
@@ -141,18 +150,25 @@ function startSimulation() {
 }
 
 function addRacer() {
-    const start = new Date(document.getElementById('startTime').value);
-    const end = new Date(start.toISOString().split('T')[0] + 'T' + document.getElementById('rTime').value);
+    const startVal = document.getElementById('startTime').value;
+    const distVal = document.getElementById('rDist').value;
+    const timeVal = document.getElementById('rTime').value;
+    const nameVal = document.getElementById('rName').value;
+
+    if(!startVal || !distVal || !timeVal || !nameVal) return alert("البيانات ناقصة");
+
+    const start = new Date(startVal);
+    const end = new Date(startVal.split('T')[0] + 'T' + timeVal);
     if(end < start) end.setDate(end.getDate() + 1);
     
-    const min = (end - start) / 60000;
-    const speed = (document.getElementById('rDist').value * 1000) / min;
+    const minutes = (end - start) / 60000;
+    const speed = (parseFloat(distVal) * 1000) / minutes; // النتيجة بالمتر/دقيقة
     
-    racers.push({name: document.getElementById('rName').value, dist: document.getElementById('rDist').value, speed});
+    racers.push({ name: nameVal, dist: distVal, speed, hum: weatherData.hum });
     racers.sort((a,b) => b.speed - a.speed);
     
     document.getElementById('results').innerHTML = racers.map((r, i) => `
-        <tr><td>${i+1}</td><td>${r.name}</td><td>${r.dist} Km</td><td>${r.speed.toFixed(2)}</td><td>${weatherData.hum}% رطوبة</td></tr>
+        <tr><td>${i+1}</td><td>${r.name}</td><td>${r.dist} Km</td><td style="color:#00ff88; font-weight:bold">${r.speed.toFixed(2)}</td><td>${r.hum}%</td></tr>
     `).join('');
 }
 </script>
