@@ -2,24 +2,23 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>ELMAKKAOUY FLIGHT AI - Professional Simulator</title>
+    <title>ELMAKKAOUY FLIGHT AI PRO - Real Physics</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <style>
-        :root { --primary: #00d4ff; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #22c55e; }
+        :root { --primary: #00d4ff; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --danger: #ff4d4d; }
         body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; }
         #map { height: 400px; width: 100%; border-bottom: 3px solid var(--primary); }
         .container { padding: 15px; max-width: 1200px; margin: auto; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 15px; }
         .panel { background: var(--card); padding: 15px; border-radius: 12px; border: 1px solid #334155; }
-        input, button { width: 100%; padding: 10px; margin-top: 8px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
-        button { background: var(--primary); color: #000; font-weight: bold; cursor: pointer; border: none; }
         .stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--card); padding: 15px; border-radius: 12px; margin: -25px auto 15px; width: 95%; position: relative; z-index: 1000; border: 1px solid var(--primary); text-align: center; }
         .stat-item b { display: block; color: var(--primary); font-size: 1.1em; }
-        .search-box { position: relative; }
-        .sug-box { position: absolute; z-index: 2000; width: 100%; background: var(--card); border: 1px solid var(--primary); display: none; max-height: 150px; overflow-y: auto; }
-        .sug-item { padding: 8px; cursor: pointer; border-bottom: 1px solid #444; font-size: 0.85em; }
-        .sug-item:hover { background: var(--primary); color: #000; }
-        .env-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; margin-top: 5px; background: #334155; }
+        .stat-item span { font-size: 0.8em; color: #94a3b8; }
+        input, button { width: 100%; padding: 10px; margin-top: 8px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
+        button { background: var(--primary); color: #000; font-weight: bold; cursor: pointer; border: none; }
+        .warning { color: var(--danger); font-size: 0.8em; font-weight: bold; margin-top: 5px; display: none; }
+        table { width: 100%; margin-top: 15px; border-collapse: collapse; }
+        th, td { padding: 10px; border-bottom: 1px solid #444; text-align: center; }
     </style>
 </head>
 <body>
@@ -27,47 +26,36 @@
 <div id="map"></div>
 
 <div class="stats-bar">
-    <div class="stat-item">📏 المسافة<b id="st-dist">0 Km</b></div>
-    <div class="stat-item">🌬️ الرياح<b id="st-wind">0 m/m</b></div>
-    <div class="stat-item">💧 الرطوبة<b id="st-hum">0%</b></div>
-    <div class="stat-item">🚀 السرعة الأرضية<b id="st-gspeed">0 m/m</b></div>
+    <div class="stat-item">🌬️ رياح حقيقية<b id="st-wind-km">0 km/h</b><span id="wind-dir">--</span></div>
+    <div class="stat-item">🚀 سرعة الحمامة (النسبية)<b id="st-airspeed">70 km/h</b><span>القدرة الجسدية</span></div>
+    <div class="stat-item">🌍 السرعة الأرضية (الواقعية)<b id="st-groundspeed">0 km/h</b><span id="speed-impact">متأثرة بالجو</span></div>
+    <div class="stat-item">📏 المسافة المتبقية<b id="st-rem-dist">--</b><span>Km</span></div>
 </div>
 
 <div class="container">
     <div class="grid">
         <div class="panel">
-            <h3>📍 إعدادات الإطلاق الذكي</h3>
-            <div class="search-box">
-                <input id="startInput" placeholder="نقطة الإطلاق (بحث أو إحداثيات: lat, lon)" oninput="handleLocationInput(this.value, 'start')">
-                <div id="sugStart" class="sug-box"></div>
-            </div>
-            <div class="search-box">
-                <input id="endInput" placeholder="نقطة الوصول (بحث أو إحداثيات: lat, lon)" oninput="handleLocationInput(this.value, 'end')">
-                <div id="sugEnd" class="sug-box"></div>
-            </div>
-            <label style="display:block; margin-top:10px;">وقت الإطلاق:</label>
+            <h3>📍 إطلاق بمحاكاة فيزيائية</h3>
+            <input id="startInput" placeholder="نقطة الإطلاق (بحث أو إحداثيات)" oninput="handleSearch(this.value, 'start')">
+            <input id="endInput" placeholder="نقطة الوصول (بحث أو إحداثيات)" oninput="handleSearch(this.value, 'end')">
             <input type="datetime-local" id="startTime">
-            <button onclick="syncSimulation()">تفعيل المحاكاة الفيزيائية ⚡</button>
+            <div id="fog-warning" class="warning">⚠️ تنبيه: رطوبة عالية (ضباب محتمل) قد يعيق الملاحة!</div>
+            <button onclick="startSimulation()">بدء تتبع الرحلة الواقعية 🕊️</button>
         </div>
 
         <div class="panel">
-            <h3>🏆 تسجيل نتائج السباق</h3>
+            <h3>📊 ترتيب المتسابقين (حساب رسمي)</h3>
             <input id="rName" placeholder="اسم المتسابق">
-            <input id="rDist" type="number" placeholder="المسافة الفعلية (Km)">
+            <input id="rDist" type="number" placeholder="المسافة المقطوعة (Km)">
             <input id="rTime" type="time">
-            <button onclick="processRacer()" style="background:var(--accent); color:white">حساب السرعة الرسمية</button>
-            <div id="env-info" class="env-badge">بانتظار البيانات الجوية...</div>
+            <button onclick="addRacer()" style="background:#22c55e; color:white">تسجيل وحساب م/د</button>
         </div>
     </div>
 
     <div class="panel" style="margin-top:15px">
-        <table style="width:100%; border-collapse: collapse;">
-            <thead>
-                <tr style="border-bottom: 2px solid var(--primary)">
-                    <th>المركز</th><th>المتسابق</th><th>المسافة</th><th>السرعة (م/د)</th><th>الحالة</th>
-                </tr>
-            </thead>
-            <tbody id="leaderboard"></tbody>
+        <table>
+            <thead><tr><th>#</th><th>الاسم</th><th>المسافة</th><th>السرعة (م/د)</th><th>الحالة الجوية</th></tr></thead>
+            <tbody id="results"></tbody>
         </table>
     </div>
 </div>
@@ -78,150 +66,95 @@ let map = L.map('map').setView([33.5, -7.5], 6);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
 let pigeon, pathLine, startPt, endPt, racers = [];
-let weather = { windSpd: 0, windDeg: 0, humidity: 50 };
+let weatherData = { windKm: 0, deg: 0, hum: 0 };
+const PIGEON_BASE_KMH = 70; // السرعة النسبية للحمامة (70 كم/ساعة في الجو الساكن)
 
-// معالجة المدخلات (بحت أو إحداثيات)
-async function handleLocationInput(val, type) {
-    const box = type === 'start' ? document.getElementById('sugStart') : document.getElementById('sugEnd');
+// حساب السرعة الأرضية الواقعية (Ground Speed)
+function calculatePhysics(airspeedKm, windKm, windDeg, flightDeg) {
+    const angleRad = (windDeg - flightDeg) * Math.PI / 180;
+    // التأثير الطولي (دفع أو مقاومة)
+    const tailwind = Math.cos(angleRad) * windKm;
+    // التأثير الجانبي (انحراف)
+    const crosswind = Math.sin(angleRad) * windKm;
     
-    // التحقق إذا كان المستخدم يدخل إحداثيات يدوياً (lat, lon)
-    const coordRegex = /^(-?\ d+(\.\d+)?),\s*(-?\d+(\.\d+)?)$/;
-    if(coordRegex.test(val)) {
-        const [lat, lon] = val.split(',').map(Number);
-        updatePoint(lat, lon, "إحداثيات يدوية", type);
-        box.style.display = 'none';
-        return;
-    }
+    // السرعة الأرضية هي مجموع سرعة الحمامة + دفع الرياح
+    let groundSpeed = airspeedKm + tailwind;
+    
+    // تصحيح الانحراف (الحمامة تميل بجسدها لتعويض الرياح الجانبية)
+    groundSpeed = Math.sqrt(Math.pow(groundSpeed, 2) - Math.pow(crosswind, 0.5));
+    
+    return groundSpeed > 10 ? groundSpeed : 10; // الحد الأدنى للسرعة
+}
 
-    if(val.length < 3) { box.style.display = 'none'; return; }
-    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${val}&limit=5`);
+async function handleSearch(val, type) {
+    if(val.length < 3) return;
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${val}&limit=1`);
     const d = await r.json();
-    box.style.display = 'block';
-    box.innerHTML = d.map(x => `<div class="sug-item" onclick="updatePoint(${x.lat}, ${x.lon}, '${x.display_name}', '${type}')">${x.display_name}</div>`).join('');
-}
-
-function updatePoint(lat, lon, name, type) {
-    if(type === 'start') {
-        startPt = {lat, lng: lon};
-        document.getElementById('startInput').value = name.split(',')[0];
-        document.getElementById('sugStart').style.display = 'none';
-    } else {
-        endPt = {lat, lng: lon};
-        document.getElementById('endInput').value = name.split(',')[0];
-        document.getElementById('sugEnd').style.display = 'none';
+    if(d[0]) {
+        const pt = {lat: parseFloat(d[0].lat), lng: parseFloat(d[0].lon)};
+        if(type === 'start') startPt = pt; else endPt = pt;
+        getWeather(pt.lat, pt.lng);
     }
-    fetchWeather(lat, lon);
-    save();
 }
 
-async function fetchWeather(lat, lon) {
-    try {
-        const r = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=992e2b79f5e3386bda09d14ff4807f9d`);
-        const d = await r.json();
-        weather = {
-            windSpd: (d.wind.speed || 0) * 60, // تحويل لمتر/دقيقة
-            windDeg: d.wind.deg || 0,
-            humidity: d.main.humidity || 50
-        };
-        document.getElementById('st-wind').innerText = weather.windSpd.toFixed(0) + " m/m";
-        document.getElementById('st-hum').innerText = weather.humidity + "%";
-        document.getElementById('env-info').innerText = `الجو: ${weather.humidity > 70 ? 'رطب (ثقيل)' : 'جاف (مثالي)'}`;
-    } catch(e) { console.log("Weather error"); }
+async function getWeather(lat, lon) {
+    const r = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=992e2b79f5e3386bda09d14ff4807f9d`);
+    const d = await r.json();
+    weatherData = {
+        windKm: (d.wind.speed * 3.6), // تحويل من m/s إلى km/h
+        deg: d.wind.deg,
+        hum: d.main.humidity
+    };
+    document.getElementById('st-wind-km').innerText = weatherData.windKm.toFixed(1) + " km/h";
+    document.getElementById('fog-warning').style.display = weatherData.hum > 85 ? 'block' : 'none';
 }
 
-function calcGroundSpeed(baseSpeed, wSpd, wDeg, targetDeg) {
-    // مثلث الرياح المبسط
-    const angleRad = (wDeg - targetDeg) * Math.PI / 180;
-    const tailwindComponent = Math.cos(angleRad) * wSpd;
-    const crosswindComponent = Math.sin(angleRad) * wSpd;
-    
-    // تأثير الرطوبة: الرطوبة العالية تزيد مقاومة الهواء قليلاً (محاكاة)
-    const humFactor = 1 - (weather.humidity / 1000); 
-    
-    return (baseSpeed * humFactor) + tailwindComponent;
-}
-
-function syncSimulation() {
+function startSimulation() {
     if(!startPt || !endPt || !document.getElementById('startTime').value) return;
 
-    const R = 6371000;
-    const dLat = (endPt.lat - startPt.lat) * Math.PI / 180;
-    const dLon = (endPt.lng - startPt.lng) * Math.PI / 180;
-    const dist = 2 * R * Math.asin(Math.sqrt(Math.sin(dLat/2)**2 + Math.cos(startPt.lat*Math.PI/180)*Math.cos(endPt.lat*Math.PI/180)*Math.sin(dLon/2)**2));
+    const flightDeg = Math.atan2(endPt.lat - startPt.lat, endPt.lng - startPt.lng) * 180 / Math.PI;
+    const groundSpeedKm = calculatePhysics(PIGEON_BASE_KMH, weatherData.windKm, weatherData.deg, flightDeg);
     
-    document.getElementById('st-dist').innerText = (dist/1000).toFixed(2) + " Km";
+    document.getElementById('st-groundspeed').innerText = groundSpeedKm.toFixed(1) + " km/h";
+    document.getElementById('speed-impact').innerText = groundSpeedKm > PIGEON_BASE_KMH ? "رياح دافعة ⚡" : "رياح معاكسة 🐢";
 
     if(pathLine) map.removeLayer(pathLine);
-    pathLine = L.polyline([startPt, endPt], {color: 'cyan', weight: 1, dashArray: '5,5'}).addTo(map);
-    
+    pathLine = L.polyline([startPt, endPt], {color: 'cyan', weight: 1}).addTo(map);
     if(!pigeon) pigeon = L.marker(startPt, {icon: L.divIcon({html: '🕊️', className: 'bird-icon'})}).addTo(map);
-    map.fitBounds(pathLine.getBounds());
 
     function animate() {
-        const elapsed = (new Date() - new Date(document.getElementById('startTime').value)) / 60000;
-        if(elapsed < 0) return requestAnimationFrame(animate);
+        const elapsedH = (new Date() - new Date(document.getElementById('startTime').value)) / 3600000;
+        if(elapsedH < 0) return requestAnimationFrame(animate);
 
-        const targetDeg = Math.atan2(endPt.lat - startPt.lat, endPt.lng - startPt.lng) * 180 / Math.PI;
-        const gSpeed = calcGroundSpeed(1200, weather.windSpd, weather.windDeg, targetDeg);
-        document.getElementById('st-gspeed').innerText = gSpeed.toFixed(0) + " m/m";
-
-        let progress = (elapsed * gSpeed) / dist;
+        const totalD = map.distance(startPt, endPt) / 1000;
+        let progress = (elapsedH * groundSpeedKm) / totalD;
         if(progress > 1) progress = 1;
 
-        // الجغرافيا: انحراف المسار لتجنب "الفراغ" (محاكاة التضاريس)
-        const terrainEffect = Math.sin(progress * Math.PI) * 0.02;
-        pigeon.setLatLng([
-            startPt.lat + (endPt.lat - startPt.lat) * progress + terrainEffect,
-            startPt.lng + (endPt.lng - startPt.lng) * progress
-        ]);
-
+        const curLat = startPt.lat + (endPt.lat - startPt.lat) * progress;
+        const curLng = startPt.lng + (endPt.lng - startPt.lng) * progress;
+        pigeon.setLatLng([curLat, curLng]);
+        
+        document.getElementById('st-rem-dist').innerText = (totalD * (1 - progress)).toFixed(2);
         if(progress < 1) requestAnimationFrame(animate);
     }
     animate();
 }
 
-function processRacer() {
-    const name = document.getElementById('rName').value;
-    const d = document.getElementById('rDist').value;
-    const time = document.getElementById('rTime').value;
-    const start = document.getElementById('startTime').value;
+function addRacer() {
+    const start = new Date(document.getElementById('startTime').value);
+    const end = new Date(start.toISOString().split('T')[0] + 'T' + document.getElementById('rTime').value);
+    if(end < start) end.setDate(end.getDate() + 1);
     
-    if(!name || !d || !time || !start) return alert("البيانات ناقصة");
-
-    const t1 = new Date(start);
-    const t2 = new Date(start.split('T')[0] + 'T' + time);
-    if(t2 < t1) t2.setDate(t2.getDate() + 1);
-
-    const speed = (d * 1000) / ((t2 - t1) / 60000);
-    racers.push({name, d, speed});
+    const min = (end - start) / 60000;
+    const speed = (document.getElementById('rDist').value * 1000) / min;
+    
+    racers.push({name: document.getElementById('rName').value, dist: document.getElementById('rDist').value, speed});
     racers.sort((a,b) => b.speed - a.speed);
     
-    document.getElementById('leaderboard').innerHTML = racers.map((r, i) => `
-        <tr><td>${i+1}</td><td>${r.name}</td><td>${r.d} Km</td><td>${r.speed.toFixed(2)}</td><td>✅</td></tr>
+    document.getElementById('results').innerHTML = racers.map((r, i) => `
+        <tr><td>${i+1}</td><td>${r.name}</td><td>${r.dist} Km</td><td>${r.speed.toFixed(2)}</td><td>${weatherData.hum}% رطوبة</td></tr>
     `).join('');
-    save();
 }
-
-function save() {
-    localStorage.setItem('flightSimData', JSON.stringify({
-        startPt, endPt, racers, 
-        stName: document.getElementById('startInput').value,
-        edName: document.getElementById('endInput').value,
-        sTime: document.getElementById('startTime').value
-    }));
-}
-
-window.onload = () => {
-    const saved = JSON.parse(localStorage.getItem('flightSimData') || '{}');
-    if(saved.startPt) {
-        startPt = saved.startPt; endPt = saved.endPt; racers = saved.racers || [];
-        document.getElementById('startInput').value = saved.stName;
-        document.getElementById('endInput').value = saved.edName;
-        document.getElementById('startTime').value = saved.sTime;
-        processRacer(); // تحديث الجدول
-        syncSimulation();
-    }
-};
 </script>
 </body>
 </html>
