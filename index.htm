@@ -2,7 +2,7 @@
 <html lang="ar">
 <head>
 <meta charset="UTF-8">
-<title>ELMAKKAOUY FLIGHT AI PRO</title>
+<title>PIGEON AI PRO</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -10,7 +10,7 @@
 
 <style>
 body{margin:0;background:#0f172a;color:#fff;font-family:Arial}
-#map{height:400px}
+#map{height:420px}
 .panel{padding:15px;background:#111827}
 input,button{
 width:100%;padding:10px;margin-top:8px;
@@ -21,17 +21,8 @@ button{background:#00d4ff;color:black;font-weight:bold;cursor:pointer}
 .stat{margin:6px 0}
 .stat b{color:#00ff88}
 .leaflet-div-icon{background:transparent!important;border:none!important;}
-#bird{font-size:28px;display:inline-block;animation:flap 0.35s infinite alternate}
+#bird{font-size:30px;display:inline-block;animation:flap 0.35s infinite alternate}
 @keyframes flap{from{transform:scale(1)}to{transform:scale(1.15)}}
-#suggestions{
-background:#1f2937;position:absolute;z-index:999;
-max-height:150px;overflow-y:auto;border-radius:5px
-}
-.sug{padding:6px;cursor:pointer}
-.sug:hover{background:#00d4ff;color:#000}
-table{width:100%;margin-top:10px;border-collapse:collapse}
-th,td{padding:6px;text-align:center;border:1px solid #1f2937}
-th{background:#1f2937}
 </style>
 </head>
 
@@ -43,44 +34,26 @@ th{background:#1f2937}
 
 <input type="datetime-local" id="startTime">
 <input id="startCoord" value="33.421265,-7.812173">
-<input id="city" placeholder="اكتب مدينة الوصول" oninput="searchCity(this.value)">
-<div id="suggestions"></div>
-<button onclick="startFlight()">بدء التتبع 🕊️</button>
+<input id="destCoord" placeholder="lat,lng مثال: 35.7595,-5.8340">
+<button onclick="startFlight()">بدء التتبع</button>
 
-<hr>
-
-<div class="stat">📏 المسافة: <b id="dist">--</b> Km</div>
-<div class="stat">🚀 السرعة: <b id="speed">--</b> m/min</div>
-<div class="stat">🌬️ الرياح: <b id="wind">--</b> m/min</div>
-
-<hr>
-
-<h3>إضافة متسابق</h3>
-<input id="rName" placeholder="اسم المتسابق">
-<input id="rDist" placeholder="المسافة Km">
-<input id="rTime" type="time">
-<button onclick="addRacer()">إضافة</button>
-
-<table>
-<thead><tr><th>#</th><th>الاسم</th><th>السرعة m/min</th></tr></thead>
-<tbody id="results"></tbody>
-</table>
+<div class="stat">المسافة: <b id="dist">--</b> Km</div>
+<div class="stat">السرعة الأرضية: <b id="speed">--</b> m/min</div>
+<div class="stat">الوقت المنقضي: <b id="elapsed">--</b> دقيقة</div>
 
 </div>
 
 <script>
 
-/* ===== الخريطة ===== */
-let map=L.map('map').setView([33.4,-7.8],7);
+/* ====== خريطة ====== */
+let map=L.map('map').setView([34,-6],6);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-let pigeon,routeLine,anim;
-let startPoint,endPoint,totalDistance=0;
-const AIR_SPEED=1200;
+let pigeon,routeLine;
+const AIR_SPEED=1200; // m/min سرعة الحمام في هواء هادئ
 
-/* ===== رياضيات ===== */
+/* ====== رياضيات ====== */
 function rad(x){return x*Math.PI/180}
-function deg(x){return x*180/Math.PI}
 function hav(a,b,c,d){
 const R=6371000;
 const dLat=rad(c-a),dLon=rad(d-b);
@@ -88,131 +61,103 @@ const x=Math.sin(dLat/2)**2+
 Math.cos(rad(a))*Math.cos(rad(c))*Math.sin(dLon/2)**2;
 return 2*R*Math.asin(Math.sqrt(x));
 }
-function bearing(a,b,c,d){
-const y=Math.sin(rad(d-b))*Math.cos(rad(c));
-const x=Math.cos(rad(a))*Math.sin(rad(c))-
-Math.sin(rad(a))*Math.cos(rad(c))*Math.cos(rad(d-b));
-return (deg(Math.atan2(y,x))+360)%360;
+
+/* ====== حفظ واسترجاع ====== */
+function saveData(data){
+localStorage.setItem("raceData",JSON.stringify(data));
+}
+function loadData(){
+return JSON.parse(localStorage.getItem("raceData"));
 }
 
-/* ===== بحث المدن ===== */
-async function searchCity(q){
-if(q.length<3){suggestions.innerHTML="";return;}
-const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=5`);
-const d=await r.json();
-suggestions.innerHTML=d.map(x=>
-`<div class="sug" onclick="pickCity(${x.lat},${x.lon},'${x.display_name}')">
-${x.display_name.split(',')[0]}
-</div>`).join('');
-}
-function pickCity(lat,lon,name){
-city.value=name.split(',')[0];
-suggestions.innerHTML="";
-endPoint=L.latLng(lat,lon);
+/* ====== توليد مسار منحني شبه واقعي ====== */
+function buildRoute(start,end){
+let midLat=(start.lat+end.lat)/2;
+let midLng=(start.lng+end.lng)/2;
+
+/* انحراف بسيط نحو الداخل لتجنب البحر */
+midLng+= (Math.random()*0.8-0.4);
+
+return [start,{lat:midLat,lng:midLng},end];
 }
 
-/* ===== الرياح ===== */
-async function getWind(lat,lon){
-try{
-const r=await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=992e2b79f5e3386bda09d14ff4807f9d`);
-const d=await r.json();
-return{speed:(d.wind?.speed||0)*60,deg:d.wind?.deg||0};
-}catch{return{speed:0,deg:0};}
+/* ====== بدء التتبع ====== */
+function startFlight(){
+
+let s=startCoord.value.split(',');
+let d=destCoord.value.split(',');
+
+let start={lat:+s[0],lng:+s[1]};
+let end={lat:+d[0],lng:+d[1]};
+
+let startTime=new Date(startTimeInput.value).getTime();
+
+let totalDist=hav(start.lat,start.lng,end.lat,end.lng);
+
+let route=buildRoute(start,end);
+
+saveData({start,end,startTime,totalDist});
+
+drawFlight();
 }
 
-/* ===== طيران ذكي ===== */
-async function startFlight(){
+/* ====== رسم وتحديث ====== */
+function drawFlight(){
 
-cancelAnimationFrame(anim);
+let data=loadData();
+if(!data) return;
 
-if(!endPoint) return alert("اختر مدينة");
+let {start,end,startTime,totalDist}=data;
 
-const s=startCoord.value.split(',');
-startPoint=L.latLng(+s[0],+s[1]);
-
-totalDistance=hav(startPoint.lat,startPoint.lng,endPoint.lat,endPoint.lng);
-dist.innerText=(totalDistance/1000).toFixed(2);
+let route=buildRoute(start,end);
 
 if(routeLine) map.removeLayer(routeLine);
-routeLine=L.polyline([startPoint,endPoint],{color:'#00d4ff'}).addTo(map);
-
-if(pigeon) map.removeLayer(pigeon);
-pigeon=L.marker(startPoint,{
-icon:L.divIcon({html:`<div id="bird">🕊️</div>`,className:''})
-}).addTo(map);
+routeLine=L.polyline(route,{color:'#00d4ff'}).addTo(map);
 
 map.fitBounds(routeLine.getBounds(),{padding:[50,50]});
 
-const wind=await getWind(startPoint.lat,startPoint.lng);
-wind.innerText=wind.speed.toFixed(1);
-
-let cur={lat:startPoint.lat,lng:startPoint.lng};
-let last=performance.now();
-
-function animate(now){
-let dt=(now-last)/60000;
-last=now;
-
-let br=bearing(cur.lat,cur.lng,endPoint.lat,endPoint.lng);
-
-/* تعديل مسار لتجنب الرياح القوية */
-if(wind.speed>800){
-br+= (wind.deg-br)/10;
+if(!pigeon){
+pigeon=L.marker(start,{
+icon:L.divIcon({html:`<div id="bird">🕊️</div>`})
+}).addTo(map);
 }
 
-/* متجهات */
-let airX=AIR_SPEED*Math.cos(rad(br));
-let airY=AIR_SPEED*Math.sin(rad(br));
-let windX=wind.speed*Math.cos(rad(wind.deg));
-let windY=wind.speed*Math.sin(rad(wind.deg));
+/* حساب الزمن */
+let now=Date.now();
+let elapsedMin=(now-startTime)/60000;
+elapsed.innerText=elapsedMin.toFixed(1);
 
-let gx=airX+windX;
-let gy=airY+windY;
+/* سرعة أرضية ثابتة حالياً */
+let groundSpeed=AIR_SPEED;
+speed.innerText=groundSpeed.toFixed(0);
 
-let gSpeed=Math.sqrt(gx**2+gy**2);
-speed.innerText=gSpeed.toFixed(0);
+/* المسافة المقطوعة */
+let traveled=groundSpeed*elapsedMin;
 
-let meters=gSpeed*dt;
-let ratio=meters/totalDistance;
-
-cur.lat+=(endPoint.lat-cur.lat)*ratio;
-cur.lng+=(endPoint.lng-cur.lng)*ratio;
-
-pigeon.setLatLng([cur.lat,cur.lng]);
-
-document.getElementById("bird").style.transform=
-`rotate(${deg(Math.atan2(gy,gx))}deg)`;
-
-if(hav(cur.lat,cur.lng,endPoint.lat,endPoint.lng)<10){
+if(traveled>=totalDist){
+pigeon.setLatLng([end.lat,end.lng]);
 speed.innerText="وصل ✔";
 return;
 }
 
-anim=requestAnimationFrame(animate);
+let ratio=traveled/totalDist;
+
+/* تحرك على المسار المنحني */
+let lat=start.lat+(end.lat-start.lat)*ratio;
+let lng=start.lng+(end.lng-start.lng)*ratio;
+
+pigeon.setLatLng([lat,lng]);
+
+dist.innerText=(totalDist/1000).toFixed(2);
+
+requestAnimationFrame(drawFlight);
 }
 
-anim=requestAnimationFrame(animate);
-}
+/* ====== تحميل تلقائي عند فتح الصفحة ====== */
+window.onload=function(){
+drawFlight();
+};
 
-/* ===== المتسابقين ===== */
-let racers=[];
-function addRacer(){
-let name=rName.value;
-let distKm=parseFloat(rDist.value);
-let time=rTime.value;
-if(!name||!distKm||!time) return;
-
-let [h,m]=time.split(':');
-let minutes=(+h*60)+(+m);
-let speed=(distKm*1000)/minutes;
-
-racers.push({name,speed});
-racers.sort((a,b)=>b.speed-a.speed);
-
-results.innerHTML=racers.map((r,i)=>
-`<tr><td>${i+1}</td><td>${r.name}</td><td>${r.speed.toFixed(1)}</td></tr>`
-).join('');
-}
 </script>
 
 </body>
