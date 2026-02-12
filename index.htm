@@ -2,19 +2,42 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>ELMAKKAOUY - Dynamic Heatmap Path</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ELMAKKAOUY SAT PRO</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <style>
-        :root { --primary: #00d4ff; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
+        :root { --primary: #00d4ff; --bg: #020617; --card: #1e293b; --text: #f8fafc; }
         body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; }
-        #map { height: 500px; width: 100%; border-bottom: 3px solid var(--primary); }
-        .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); background: var(--card); padding: 15px; border-radius: 12px; margin: -30px auto 20px; position: relative; z-index: 1000; width: 92%; border: 1px solid var(--primary); text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
-        .stat-item b { display: block; color: var(--primary); font-size: 1.2em; }
-        .panel { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #334155; margin: 10px; }
-        input, button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; }
-        button { background: var(--primary); color: #000; font-weight: bold; cursor: pointer; border: none; }
-        #bird-icon { font-size: 32px; filter: drop-shadow(0 0 5px #fff); display: inline-block; }
-        .legend { background: var(--card); padding: 10px; border-radius: 8px; font-size: 12px; margin-top: 10px; display: flex; gap: 10px; justify-content: center; }
+        
+        /* تصميم الهاتف */
+        #map { height: 60vh; width: 100%; border-bottom: 2px solid var(--primary); }
+        .stats-bar { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 10px; 
+            background: rgba(30, 41, 59, 0.95); 
+            padding: 15px; 
+            margin: -20px 10px 10px; 
+            border-radius: 12px; 
+            position: relative; 
+            z-index: 1000; 
+            border: 1px solid var(--primary);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .stat-item { text-align: center; border-bottom: 1px solid #334155; padding-bottom: 5px; }
+        .stat-item b { display: block; color: var(--primary); font-size: 1.1em; }
+        .stat-item span { font-size: 0.7em; color: #94a3b8; }
+
+        .panel { padding: 15px; background: var(--card); border-radius: 15px; margin: 10px; }
+        input, button { 
+            width: 100%; padding: 14px; margin-top: 10px; 
+            border-radius: 10px; border: 1px solid #334155; 
+            background: #0f172a; color: white; font-size: 16px; /* منع الزووم في الآيفون */
+        }
+        button { background: var(--primary); color: #000; font-weight: bold; border: none; }
+        
+        #bird-icon { font-size: 28px; filter: drop-shadow(0 0 5px #fff); display: inline-block; }
+        .legend { display: flex; justify-content: space-around; font-size: 10px; margin-top: 10px; color: #cbd5e1; }
     </style>
 </head>
 <body>
@@ -22,34 +45,37 @@
 <div id="map"></div>
 
 <div class="stats-bar">
-    <div class="stat-item">🌬️ الرياح<b><span id="st-wind">0</span> km/h</b></div>
-    <div class="stat-item">🌍 سرعة الأرض<b><span id="st-groundspeed">0</span> m/min</b></div>
-    <div class="stat-item">📏 متبقي<b><span id="st-rem-dist">0</span> Km</b></div>
-    <div class="stat-item">🕒 وصول محتمل<b><span id="st-eta">00:00:00</span></b></div>
+    <div class="stat-item"><span>الرياح</span><b id="st-wind">0 km/h</b></div>
+    <div class="stat-item"><span>السرعة الأرضية</span><b id="st-groundspeed">0 m/min</b></div>
+    <div class="stat-item"><span>المسافة المتبقية</span><b id="st-rem-dist">0 Km</b></div>
+    <div class="stat-item"><span>وقت الدخول</span><b id="st-eta" style="color:#fbbf24">--:--:--</b></div>
 </div>
 
 <div class="panel">
-    <input id="startCoords" placeholder="إحداثيات الإطلاق (Lat, Lon)">
-    <input id="endInput" placeholder="مدينة الوصول..." oninput="searchLoc(this.value)">
-    <div id="sugEnd" style="background:#1e293b; border:1px solid #00d4ff; display:none; position:absolute; z-index:2000; width:300px;"></div>
+    <input id="startCoords" placeholder="إحداثيات الإطلاق (مثلاً: 33.5, -7.5)">
+    <div style="position:relative">
+        <input id="endInput" placeholder="بحث عن مدينة الوصول..." oninput="searchLoc(this.value)">
+        <div id="sugEnd" style="background:#1e293b; border:1px solid #00d4ff; display:none; position:absolute; z-index:2000; width:100%; max-height:150px; overflow-y:auto; border-radius:8px;"></div>
+    </div>
     <input type="datetime-local" id="startTime" step="1">
-    <button onclick="startFlight()">بدء تتبع المسار الملون 🕊️🌈</button>
+    <button onclick="startFlight()">ابدأ تتبع الرحلة 🕊️</button>
     
     <div class="legend">
-        <span>🔴 بطيء (<900)</span>
-        <span>🟡 متوسط</span>
-        <span>🟢 سريع (>1250)</span>
+        <span>🔴 بطيء</span><span>🟡 متوسط</span><span>🟢 سريع (>1500)</span>
     </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+// إعداد خريطة القمر الاصطناعي
 let map = L.map('map').setView([33.5, -7.5], 7);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri'
+}).addTo(map);
 
-let pigeon, currentPos, lastPos, startPt, endPt;
+let pigeon, lastPos, startPt, endPt;
 let weather = { windKm: 0, deg: 0 };
-const BASE_SPEED_KMH = 70;
+const BASE_SPEED_KMH = 75; // سرعة أساسية قوية
 
 async function searchLoc(q) {
     if(q.length < 3) return;
@@ -57,7 +83,7 @@ async function searchLoc(q) {
     const d = await r.json();
     const box = document.getElementById('sugEnd');
     box.style.display = 'block';
-    box.innerHTML = d.map(x => `<div style="padding:10px; cursor:pointer;" onclick="selectEnd(${x.lat}, ${x.lon}, '${x.display_name}')">${x.display_name}</div>`).join('');
+    box.innerHTML = d.map(x => `<div style="padding:12px; border-bottom:1px solid #334155;" onclick="selectEnd(${x.lat}, ${x.lon}, '${x.display_name}')">${x.display_name}</div>`).join('');
 }
 
 function selectEnd(lat, lon, name) {
@@ -71,11 +97,13 @@ async function getWeather(lat, lon) {
     const r = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=992e2b79f5e3386bda09d14ff4807f9d`);
     const d = await r.json();
     weather = { windKm: d.wind.speed * 3.6, deg: d.wind.deg };
-    document.getElementById('st-wind').innerText = weather.windKm.toFixed(1);
+    document.getElementById('st-wind').innerText = weather.windKm.toFixed(1) + " km/h";
 }
 
 function getColor(speed) {
-    return speed > 1250 ? '#22c55e' : speed > 1000 ? '#eab308' : '#ef4444';
+    if(speed > 1400) return '#22c55e'; // أخضر (سريع جداً)
+    if(speed > 1100) return '#eab308'; // أصفر (متوسط)
+    return '#ef4444'; // أحمر (بطيء)
 }
 
 function startFlight() {
@@ -87,7 +115,7 @@ function startFlight() {
     if(pigeon) map.removeLayer(pigeon);
     pigeon = L.marker(startPt, {icon: L.divIcon({html: '<div id="bird-icon">🕊️</div>', className: ''})}).addTo(map);
     
-    map.fitBounds([startPt, endPt]);
+    map.fitBounds([startPt, endPt], {padding: [30, 30]});
     requestAnimationFrame(animate);
 }
 
@@ -99,25 +127,28 @@ function animate() {
 
     const totalD = map.distance(startPt, endPt) / 1000;
     const bearing = (Math.atan2(endPt.lng - startPt.lng, endPt.lat - startPt.lat) * 180 / Math.PI);
+    
+    // فيزياء الرياح المتقدمة (تسمح بالوصول لـ 1800 م/د)
     const rad = (weather.deg - bearing) * Math.PI / 180;
-    const groundSpeedKmh = Math.sqrt(Math.pow(BASE_SPEED_KMH - (Math.cos(rad) * weather.windKm), 2) + Math.pow(Math.sin(rad) * weather.windKm, 2));
+    const windEffect = Math.cos(rad) * weather.windKm;
+    const groundSpeedKmh = BASE_SPEED_KMH + (windEffect * 1.2); // معامل رياح معزز للسباقات
     const gsMmin = (groundSpeedKmh * 1000) / 60;
 
-    document.getElementById('st-groundspeed').innerText = gsMmin.toFixed(2);
+    document.getElementById('st-groundspeed').innerText = gsMmin.toFixed(2) + " m/min";
 
     let progress = (elapsedH * groundSpeedKmh) / totalD;
     if(progress > 1) progress = 1;
 
-    // تعرج المسار المتقدم
-    const drift = (weather.windKm / 200) * Math.sin(progress * 60);
-    const curLat = startPt.lat + (endPt.lat - startPt.lat) * progress + drift;
-    const curLng = startPt.lng + (endPt.lng - startPt.lng) * progress + (Math.cos(progress * 40) * 0.005);
+    // تعرج المسار (طيران طبيعي)
+    const wobble = (weather.windKm / 150) * Math.sin(progress * 50);
+    const curLat = startPt.lat + (endPt.lat - startPt.lat) * progress + wobble;
+    const curLng = startPt.lng + (endPt.lng - startPt.lng) * progress + (Math.cos(progress * 30) * 0.002);
     const currentPos = [curLat, curLng];
 
-    // رسم قطعة المسار بلون ديناميكي
+    // رسم المسار الملون
     L.polyline([lastPos, currentPos], {
         color: getColor(gsMmin),
-        weight: 4,
+        weight: 5,
         opacity: 0.9
     }).addTo(map);
 
@@ -126,14 +157,12 @@ function animate() {
     document.getElementById('bird-icon').style.transform = `rotate(${bearing}deg)`;
 
     const remK = totalD * (1 - progress);
-    document.getElementById('st-rem-dist').innerText = remK.toFixed(2);
+    document.getElementById('st-rem-dist').innerText = remK.toFixed(2) + " Km";
     
     if(progress < 1) {
         const remH = remK / groundSpeedKmh;
         const eta = new Date(now.getTime() + remH * 3600000);
-        document.getElementById('st-eta').innerText = eta.getHours().toString().padStart(2, '0') + ":" + 
-                                                     eta.getMinutes().toString().padStart(2, '0') + ":" + 
-                                                     eta.getSeconds().toString().padStart(2, '0');
+        document.getElementById('st-eta').innerText = eta.toLocaleTimeString('ar-EG', {hour12:false});
         requestAnimationFrame(animate);
     } else {
         document.getElementById('st-eta').innerText = "تم الوصول";
