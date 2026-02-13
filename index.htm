@@ -11,8 +11,8 @@
 body{margin:0;background:#020617;color:white;font-family:Segoe UI}
 #map{height:55vh}
 .panel{padding:15px;background:#1e293b}
-input,button{width:100%;padding:10px;margin-top:5px}
-button{background:#00d4ff;color:black;font-weight:bold;border:none}
+input,button{width:100%;padding:10px;margin-top:5px;border:none}
+button{background:#00d4ff;color:black;font-weight:bold;cursor:pointer}
 .stats{display:flex;justify-content:space-around;padding:10px;background:#0f172a}
 </style>
 </head>
@@ -24,13 +24,12 @@ button{background:#00d4ff;color:black;font-weight:bold;border:none}
 <div class="stats">
 <div>السرعة: <span id="speed">0</span></div>
 <div>المتبقي: <span id="remain">0</span></div>
-<div>الرياح: <span id="wind">0</span></div>
+<div>الرياح: <span id="wind">15 km/h</span></div>
 </div>
 
 <div class="panel">
 <input id="startCoords" placeholder="33.57,-7.58">
 <input id="endCoords" placeholder="35.77,-5.80">
-<input type="datetime-local" id="startTime">
 <button onclick="initFlight()">بدء السباق</button>
 </div>
 
@@ -43,12 +42,16 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 let startPt,endPt;
 let path=[];
 let pigeon,trail;
-let currentIndex=0;
+
+let currentSegment=0;
+let segmentProgress=0;
+
 let BASE_SPEED=70;
 let weather={windKm:15,deg:300};
+
 let lastFrame=null;
 
-// ------------------ Utilities ------------------
+// ---------------- Utilities ----------------
 
 function toRad(x){return x*Math.PI/180}
 function toDeg(x){return x*180/Math.PI}
@@ -57,15 +60,24 @@ function distance(a,b){
 return map.distance([a.lat,a.lng],[b.lat,b.lng])/1000;
 }
 
-// ------------------ Elevation ------------------
+function key(p){
+return p.lat.toFixed(4)+","+p.lng.toFixed(4);
+}
+
+// ---------------- Elevation API ----------------
 
 async function getElevationBatch(points){
 
 const body={
-locations:points.map(p=>({latitude:p.lat,longitude:p.lng}))
+locations:points.map(p=>({
+latitude:p.lat,
+longitude:p.lng
+}))
 };
 
-const r=await fetch("https://api.open-elevation.com/api/v1/lookup",{
+const r=await fetch(
+"https://api.open-elevation.com/api/v1/lookup",
+{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify(body)
@@ -75,9 +87,9 @@ const d=await r.json();
 return d.results.map(x=>x.elevation);
 }
 
-// ------------------ Grid Generation ------------------
+// ---------------- Grid ----------------
 
-function generateGrid(start,end,stepKm=10){
+function generateGrid(start,end,stepKm=15){
 
 let minLat=Math.min(start.lat,end.lat);
 let maxLat=Math.max(start.lat,end.lat);
@@ -91,24 +103,27 @@ for(let lng=minLng;lng<=maxLng;lng+=stepKm/111){
 grid.push({lat,lng});
 }
 }
+
 return grid;
 }
 
-// ------------------ A* ------------------
+// ---------------- A* ----------------
 
 function heuristic(a,b){
 return distance(a,b);
 }
 
-function key(p){return p.lat.toFixed(4)+","+p.lng.toFixed(4)}
-
-function findNeighbors(node,grid,stepKm=10){
+function findNeighbors(node,grid,stepKm=15){
 return grid.filter(p=>distance(p,node)<=stepKm*1.5);
 }
 
 async function buildPath(){
 
 let grid=generateGrid(startPt,endPt,15);
+
+// أضف البداية والنهاية للشبكة
+grid.push(startPt);
+grid.push(endPt);
 
 let elevations=await getElevationBatch(grid);
 
@@ -117,9 +132,9 @@ let costMap={};
 grid.forEach((p,i)=>{
 let elev=elevations[i];
 
-if(elev<=0) costMap[key(p)]=99999; // بحر
-else if(elev>1200) costMap[key(p)]=50; // جبل
-else costMap[key(p)]=1;
+if(elev<=0) costMap[key(p)]=Infinity;      // بحر
+else if(elev>1200) costMap[key(p)]=40;    // جبل
+else costMap[key(p)]=1;                   // أرض عادية
 });
 
 let open=[startPt];
@@ -130,18 +145,21 @@ gScore[key(startPt)]=0;
 while(open.length){
 
 open.sort((a,b)=>
-(gScore[key(a)]+heuristic(a,endPt))-
-(gScore[key(b)]+heuristic(b,endPt))
+(gScore[key(a)] + heuristic(a,endPt)) -
+(gScore[key(b)] + heuristic(b,endPt))
 );
 
 let current=open.shift();
 
-if(distance(current,endPt)<20){
+if(distance(current,endPt)<15){
+
 let total=[current];
+
 while(cameFrom[key(current)]){
 current=cameFrom[key(current)];
 total.push(current);
 }
+
 return total.reverse();
 }
 
@@ -149,9 +167,12 @@ let neighbors=findNeighbors(current,grid);
 
 for(let n of neighbors){
 
-let tentative=gScore[key(current)]
-+distance(current,n)
-+costMap[key(n)];
+if(costMap[key(n)]===Infinity) continue;
+
+let tentative=
+gScore[key(current)] +
+distance(current,n) +
+costMap[key(n)];
 
 if(gScore[key(n)]===undefined
 || tentative<gScore[key(n)]){
@@ -164,10 +185,11 @@ open.push(n);
 }
 }
 }
+
 return [startPt,endPt];
 }
 
-// ------------------ Flight ------------------
+// ---------------- Flight Engine ----------------
 
 async function initFlight(){
 
@@ -190,55 +212,66 @@ trail=L.polyline(path,{color:"#00d4ff"}).addTo(map);
 
 map.fitBounds(path);
 
-currentIndex=0;
+currentSegment=0;
+segmentProgress=0;
 lastFrame=performance.now();
 
 requestAnimationFrame(updateFlight);
 }
 
-function updateFlight(t){
+function updateFlight(timestamp){
 
-let dt=(t-lastFrame)/1000;
-lastFrame=t;
+let dt=(timestamp-lastFrame)/1000;
+lastFrame=timestamp;
 
-if(currentIndex>=path.length-1) return;
+if(currentSegment>=path.length-1) return;
 
-let a=path[currentIndex];
-let b=path[currentIndex+1];
+let a=path[currentSegment];
+let b=path[currentSegment+1];
 
-let segmentDist=distance(a,b);
+let segDist=distance(a,b);
 
 let windEffect=
-weather.windKm*Math.cos(
-toRad(weather.deg)
-);
+weather.windKm *
+Math.cos(toRad(weather.deg));
 
-let speed=BASE_SPEED+windEffect*0.5;
+let speed=BASE_SPEED + windEffect*0.5;
 if(speed<40) speed=40;
 
 let moveKm=(speed/3600)*dt;
 
-if(moveKm>=segmentDist){
-currentIndex++;
-}else{
+segmentProgress+=moveKm;
 
-let ratio=moveKm/segmentDist;
+if(segmentProgress>=segDist){
+
+currentSegment++;
+segmentProgress=0;
+
+if(currentSegment>=path.length-1){
+pigeon.setLatLng([endPt.lat,endPt.lng]);
+return;
+}
+
+a=path[currentSegment];
+b=path[currentSegment+1];
+segDist=distance(a,b);
+}
+
+let ratio=segmentProgress/segDist;
 
 let newLat=a.lat+(b.lat-a.lat)*ratio;
 let newLng=a.lng+(b.lng-a.lng)*ratio;
 
-path[currentIndex]={lat:newLat,lng:newLng};
-}
+pigeon.setLatLng([newLat,newLng]);
 
-pigeon.setLatLng(path[currentIndex]);
-
+// تحديث الإحصائيات
 document.getElementById("speed")
 .innerText=((speed*1000)/60).toFixed(1)+" m/min";
 
 let remain=0;
-for(let i=currentIndex;i<path.length-1;i++)
+for(let i=currentSegment;i<path.length-1;i++){
 remain+=distance(path[i],path[i+1]);
-
+}
 document.getElementById("remain")
 .innerText=remain.toFixed(1)+" Km";
 
