@@ -3,17 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ELMAKKAOUY REAL FLIGHT V5</title>
+<title>ELMAKKAOUY V6 PRO</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
 <style>
 body{margin:0;background:#020617;color:white;font-family:Segoe UI}
-#map{height:55vh}
+#map{height:50vh}
 .panel{padding:15px;background:#1e293b}
 input,button{width:100%;padding:10px;margin-top:5px;border:none}
 button{background:#00d4ff;color:black;font-weight:bold;cursor:pointer}
-.stats{display:flex;justify-content:space-around;padding:10px;background:#0f172a}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:10px;background:#0f172a}
+.stat{font-size:13px}
+#suggest{background:#1e293b;position:absolute;z-index:999;width:90%;max-height:150px;overflow:auto;display:none}
 </style>
 </head>
 
@@ -22,260 +24,197 @@ button{background:#00d4ff;color:black;font-weight:bold;cursor:pointer}
 <div id="map"></div>
 
 <div class="stats">
-<div>السرعة: <span id="speed">0</span></div>
-<div>المتبقي: <span id="remain">0</span></div>
-<div>الرياح: <span id="wind">15 km/h</span></div>
+<div class="stat">السرعة: <span id="speed">0</span></div>
+<div class="stat">المتبقي: <span id="remain">0</span></div>
+<div class="stat">الرياح: <span id="wind">--</span></div>
+<div class="stat">الرطوبة: <span id="humidity">--</span></div>
 </div>
 
 <div class="panel">
-<input id="startCoords" placeholder="33.57,-7.58">
-<input id="endCoords" placeholder="35.77,-5.80">
-<button onclick="initFlight()">بدء السباق</button>
+<input id="startCoords" placeholder="إحداثيات الانطلاق 33.57,-7.58">
+<input id="endCity" placeholder="اكتب مدينة الوصول" oninput="searchCity(this.value)">
+<div id="suggest"></div>
+<input type="time" id="startClock" step="1">
+<button onclick="initFlight()">بدء الطيران</button>
+</div>
+
+<div class="panel">
+<h3>نتائج المتسابقين</h3>
+<input id="rName" placeholder="اسم المتسابق">
+<input id="rDist" type="number" placeholder="المسافة Km">
+<input id="rArrival" type="time" step="1">
+<button onclick="recordRacer()">حساب النتيجة</button>
+<table width="100%" id="board"></table>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-let map = L.map('map').setView([33.5,-7.5],6);
+let map=L.map('map').setView([33.5,-7.5],6);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-let startPt,endPt;
-let path=[];
+let startPt,endPt,currentPos;
 let pigeon,trail;
-
-let currentSegment=0;
-let segmentProgress=0;
-
 let BASE_SPEED=70;
-let weather={windKm:15,deg:300};
-
+let weather={speed:15,deg:300,humidity:60};
 let lastFrame=null;
+let racers=[];
 
-// ---------------- Utilities ----------------
+// ---------- أدوات ----------
 
 function toRad(x){return x*Math.PI/180}
 function toDeg(x){return x*180/Math.PI}
-
 function distance(a,b){
 return map.distance([a.lat,a.lng],[b.lat,b.lng])/1000;
 }
 
-function key(p){
-return p.lat.toFixed(4)+","+p.lng.toFixed(4);
+function windDirectionName(deg){
+if(deg>=337||deg<22)return"شمالية";
+if(deg<67)return"شمالية شرقية";
+if(deg<112)return"شرقية";
+if(deg<157)return"جنوبية شرقية";
+if(deg<202)return"جنوبية";
+if(deg<247)return"جنوبية غربية";
+if(deg<292)return"غربية";
+return"شمالية غربية";
 }
 
-// ---------------- Elevation API ----------------
+// ---------- بحث مدينة ----------
 
-async function getElevationBatch(points){
-
-const body={
-locations:points.map(p=>({
-latitude:p.lat,
-longitude:p.lng
-}))
-};
-
-const r=await fetch(
-"https://api.open-elevation.com/api/v1/lookup",
-{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify(body)
-});
-
+async function searchCity(q){
+if(q.length<3)return;
+const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=5`);
 const d=await r.json();
-return d.results.map(x=>x.elevation);
+let box=document.getElementById("suggest");
+box.style.display="block";
+box.innerHTML=d.map(x=>
+`<div style="padding:6px;cursor:pointer"
+onclick="selectCity(${x.lat},${x.lon},'${x.display_name}')">
+${x.display_name}</div>`).join('');
 }
 
-// ---------------- Grid ----------------
-
-function generateGrid(start,end,stepKm=15){
-
-let minLat=Math.min(start.lat,end.lat);
-let maxLat=Math.max(start.lat,end.lat);
-let minLng=Math.min(start.lng,end.lng);
-let maxLng=Math.max(start.lng,end.lng);
-
-let grid=[];
-
-for(let lat=minLat;lat<=maxLat;lat+=stepKm/111){
-for(let lng=minLng;lng<=maxLng;lng+=stepKm/111){
-grid.push({lat,lng});
-}
+function selectCity(lat,lon,name){
+endPt={lat:parseFloat(lat),lng:parseFloat(lon)};
+document.getElementById("endCity").value=name.split(',')[0];
+document.getElementById("suggest").style.display="none";
+map.setView([lat,lon],8);
 }
 
-return grid;
-}
+// ---------- بدء الطيران ----------
 
-// ---------------- A* ----------------
+function initFlight(){
 
-function heuristic(a,b){
-return distance(a,b);
-}
+let sc=document.getElementById("startCoords").value.split(",");
+startPt={lat:parseFloat(sc[0]),lng:parseFloat(sc[1])};
 
-function findNeighbors(node,grid,stepKm=15){
-return grid.filter(p=>distance(p,node)<=stepKm*1.5);
-}
+currentPos={...startPt};
 
-async function buildPath(){
-
-let grid=generateGrid(startPt,endPt,15);
-
-// أضف البداية والنهاية للشبكة
-grid.push(startPt);
-grid.push(endPt);
-
-let elevations=await getElevationBatch(grid);
-
-let costMap={};
-
-grid.forEach((p,i)=>{
-let elev=elevations[i];
-
-if(elev<=0) costMap[key(p)]=Infinity;      // بحر
-else if(elev>1200) costMap[key(p)]=40;    // جبل
-else costMap[key(p)]=1;                   // أرض عادية
-});
-
-let open=[startPt];
-let cameFrom={};
-let gScore={};
-gScore[key(startPt)]=0;
-
-while(open.length){
-
-open.sort((a,b)=>
-(gScore[key(a)] + heuristic(a,endPt)) -
-(gScore[key(b)] + heuristic(b,endPt))
-);
-
-let current=open.shift();
-
-if(distance(current,endPt)<15){
-
-let total=[current];
-
-while(cameFrom[key(current)]){
-current=cameFrom[key(current)];
-total.push(current);
-}
-
-return total.reverse();
-}
-
-let neighbors=findNeighbors(current,grid);
-
-for(let n of neighbors){
-
-if(costMap[key(n)]===Infinity) continue;
-
-let tentative=
-gScore[key(current)] +
-distance(current,n) +
-costMap[key(n)];
-
-if(gScore[key(n)]===undefined
-|| tentative<gScore[key(n)]){
-
-cameFrom[key(n)]=current;
-gScore[key(n)]=tentative;
-
-if(!open.find(p=>key(p)==key(n)))
-open.push(n);
-}
-}
-}
-
-return [startPt,endPt];
-}
-
-// ---------------- Flight Engine ----------------
-
-async function initFlight(){
-
-let s=document.getElementById("startCoords").value.split(",");
-let e=document.getElementById("endCoords").value.split(",");
-
-startPt={lat:parseFloat(s[0]),lng:parseFloat(s[1])};
-endPt={lat:parseFloat(e[0]),lng:parseFloat(e[1])};
-
-path=await buildPath();
-
-if(pigeon) map.removeLayer(pigeon);
-if(trail) map.removeLayer(trail);
+if(pigeon)map.removeLayer(pigeon);
+if(trail)map.removeLayer(trail);
 
 pigeon=L.marker(startPt,{
 icon:L.divIcon({html:"🕊️",className:""})
 }).addTo(map);
 
-trail=L.polyline(path,{color:"#00d4ff"}).addTo(map);
+trail=L.polyline([],{
+color:"#00d4ff",
+weight:3
+}).addTo(map);
 
-map.fitBounds(path);
+map.fitBounds([startPt,endPt]);
 
-currentSegment=0;
-segmentProgress=0;
 lastFrame=performance.now();
-
 requestAnimationFrame(updateFlight);
 }
 
-function updateFlight(timestamp){
+// ---------- محرك الطيران ----------
 
-let dt=(timestamp-lastFrame)/1000;
-lastFrame=timestamp;
+function updateFlight(t){
 
-if(currentSegment>=path.length-1) return;
+let dt=(t-lastFrame)/1000;
+lastFrame=t;
 
-let a=path[currentSegment];
-let b=path[currentSegment+1];
+let bearing=Math.atan2(
+endPt.lng-currentPos.lng,
+endPt.lat-currentPos.lat
+);
 
-let segDist=distance(a,b);
+let windEffect=weather.speed*
+Math.cos(toRad(weather.deg)-bearing);
 
-let windEffect=
-weather.windKm *
-Math.cos(toRad(weather.deg));
+let humidityFactor=1+(weather.humidity/200);
 
-let speed=BASE_SPEED + windEffect*0.5;
-if(speed<40) speed=40;
+let speed=BASE_SPEED+windEffect*0.5;
+if(speed<40)speed=40;
 
 let moveKm=(speed/3600)*dt;
 
-segmentProgress+=moveKm;
+let driftLat=Math.sin(t/5000)*0.001*humidityFactor;
+let driftLng=Math.cos(t/6000)*0.001*humidityFactor;
 
-if(segmentProgress>=segDist){
+currentPos.lat+=moveKm*Math.cos(bearing)+driftLat;
+currentPos.lng+=moveKm*Math.sin(bearing)+driftLng;
 
-currentSegment++;
-segmentProgress=0;
+pigeon.setLatLng([currentPos.lat,currentPos.lng]);
 
-if(currentSegment>=path.length-1){
-pigeon.setLatLng([endPt.lat,endPt.lng]);
-return;
-}
+trail.addLatLng([currentPos.lat,currentPos.lng]);
 
-a=path[currentSegment];
-b=path[currentSegment+1];
-segDist=distance(a,b);
-}
-
-let ratio=segmentProgress/segDist;
-
-let newLat=a.lat+(b.lat-a.lat)*ratio;
-let newLng=a.lng+(b.lng-a.lng)*ratio;
-
-pigeon.setLatLng([newLat,newLng]);
-
-// تحديث الإحصائيات
 document.getElementById("speed")
-.innerText=((speed*1000)/60).toFixed(1)+" m/min";
+.innerText=((speed*1000)/60).toFixed(1)+" م/د";
 
-let remain=0;
-for(let i=currentSegment;i<path.length-1;i++){
-remain+=distance(path[i],path[i+1]);
-}
 document.getElementById("remain")
-.innerText=remain.toFixed(1)+" Km";
+.innerText=distance(currentPos,endPt).toFixed(2)+" Km";
+
+document.getElementById("wind")
+.innerText=weather.speed+" km/h "+windDirectionName(weather.deg);
+
+document.getElementById("humidity")
+.innerText=weather.humidity+"%";
+
+if(distance(currentPos,endPt)<0.3)return;
 
 requestAnimationFrame(updateFlight);
+}
+
+// ---------- نتائج ----------
+
+function recordRacer(){
+
+let name=document.getElementById("rName").value;
+let dist=parseFloat(document.getElementById("rDist").value);
+let arrival=document.getElementById("rArrival").value;
+let start=document.getElementById("startClock").value;
+
+if(!name||!dist||!arrival||!start)
+return alert("أدخل كل البيانات");
+
+let [sh,sm,ss]=start.split(':');
+let [ah,am,as]=arrival.split(':');
+
+let startSec=(+sh*3600)+(+sm*60)+(+ss||0);
+let arrivalSec=(+ah*3600)+(+am*60)+(+as||0);
+
+let flightMin=(arrivalSec-startSec)/60;
+if(flightMin<=0)return alert("وقت غير صحيح");
+
+let speed=(dist*1000)/flightMin;
+
+racers.push({name,dist,speed});
+
+racers.sort((a,b)=>b.speed-a.speed);
+
+renderBoard();
+}
+
+function renderBoard(){
+document.getElementById("board").innerHTML=
+racers.map((r,i)=>
+`<tr>
+<td>${i+1}</td>
+<td>${r.name}</td>
+<td>${r.dist}</td>
+<td>${r.speed.toFixed(2)} م/د</td>
+</tr>`).join('');
 }
 
 </script>
