@@ -1,21 +1,43 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ELMAKKAOUY V6 PRO</title>
+<title>Professional Pigeon Race Simulator</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <style>
-body{margin:0;background:#020617;color:white;font-family:Segoe UI}
-#map{height:50vh}
-.panel{padding:15px;background:#1e293b}
-input,button{width:100%;padding:10px;margin-top:5px;border:none}
-button{background:#00d4ff;color:black;font-weight:bold;cursor:pointer}
-.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:10px;background:#0f172a}
-.stat{font-size:13px}
-#suggest{background:#1e293b;position:absolute;z-index:999;width:90%;max-height:150px;overflow:auto;display:none}
+body{
+    margin:0;
+    background:#0b1220;
+    color:#e0e6ff;
+    font-family:tahoma;
+}
+#map{height:65vh;}
+.panel{
+    padding:12px;
+    background:#111a2f;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+}
+input,button{
+    padding:6px;
+    background:#1c2745;
+    color:white;
+    border:none;
+}
+button{
+    background:#0ea5e9;
+    cursor:pointer;
+}
+.stats{
+    padding:12px;
+    background:#0f172a;
+}
 </style>
 </head>
 
@@ -23,199 +45,305 @@ button{background:#00d4ff;color:black;font-weight:bold;cursor:pointer}
 
 <div id="map"></div>
 
-<div class="stats">
-<div class="stat">السرعة: <span id="speed">0</span></div>
-<div class="stat">المتبقي: <span id="remain">0</span></div>
-<div class="stat">الرياح: <span id="wind">--</span></div>
-<div class="stat">الرطوبة: <span id="humidity">--</span></div>
-</div>
-
 <div class="panel">
-<input id="startCoords" placeholder="إحداثيات الانطلاق 33.57,-7.58">
-<input id="endCity" placeholder="اكتب مدينة الوصول" oninput="searchCity(this.value)">
-<div id="suggest"></div>
-<input type="time" id="startClock" step="1">
-<button onclick="initFlight()">بدء الطيران</button>
+<input id="startLat" placeholder="Lat">
+<input id="startLng" placeholder="Lng">
+<input id="destCity" placeholder="مدينة الوصول">
+
+<input type="datetime-local" id="startTime">
+
+<button onclick="startRace()">بدء السباق</button>
 </div>
 
-<div class="panel">
-<h3>نتائج المتسابقين</h3>
-<input id="rName" placeholder="اسم المتسابق">
-<input id="rDist" type="number" placeholder="المسافة Km">
-<input id="rArrival" type="time" step="1">
-<button onclick="recordRacer()">حساب النتيجة</button>
-<table width="100%" id="board"></table>
-</div>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<div class="stats" id="stats"></div>
 
 <script>
-let map=L.map('map').setView([33.5,-7.5],6);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-let startPt,endPt,currentPos;
-let pigeon,trail;
-let BASE_SPEED=70;
-let weather={speed:15,deg:300,humidity:60};
-let lastFrame=null;
-let racers=[];
+//================= MAP =================//
 
-// ---------- أدوات ----------
+const map = L.map('map').setView([33.5,-7.6],7);
 
-function toRad(x){return x*Math.PI/180}
-function toDeg(x){return x*180/Math.PI}
-function distance(a,b){
-return map.distance([a.lat,a.lng],[b.lat,b.lng])/1000;
+L.tileLayer(
+'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+).addTo(map);
+
+//================= CONSTANTS =================//
+
+const R = 6371000;
+const MASS = 0.4;
+const Cd = 0.9;
+const AREA = 0.05;
+const BASE_THRUST = 6;
+
+let pigeons = [];
+let weather = {speed:0,deg:0,humidity:50};
+
+let raceData=null;
+
+//================= UTILS =================//
+
+const toRad = d=>d*Math.PI/180;
+const toDeg = r=>r*180/Math.PI;
+
+function haversine(a,b){
+    const φ1=toRad(a.lat), φ2=toRad(b.lat);
+    const Δφ=φ2-φ1;
+    const Δλ=toRad(b.lng-a.lng);
+
+    const h =
+        Math.sin(Δφ/2)**2 +
+        Math.cos(φ1)*Math.cos(φ2)*
+        Math.sin(Δλ/2)**2;
+
+    return 2*R*Math.asin(Math.sqrt(h));
 }
 
-function windDirectionName(deg){
-if(deg>=337||deg<22)return"شمالية";
-if(deg<67)return"شمالية شرقية";
-if(deg<112)return"شرقية";
-if(deg<157)return"جنوبية شرقية";
-if(deg<202)return"جنوبية";
-if(deg<247)return"جنوبية غربية";
-if(deg<292)return"غربية";
-return"شمالية غربية";
+function bearing(a,b){
+    const φ1=toRad(a.lat);
+    const φ2=toRad(b.lat);
+    const Δλ=toRad(b.lng-a.lng);
+
+    const y=Math.sin(Δλ)*Math.cos(φ2);
+    const x=Math.cos(φ1)*Math.sin(φ2)-
+            Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ);
+
+    return (toDeg(Math.atan2(y,x))+360)%360;
 }
 
-// ---------- بحث مدينة ----------
+function move(lat,lng,brg,dist){
+    const δ=dist/R;
+    const θ=toRad(brg);
 
-async function searchCity(q){
-if(q.length<3)return;
-const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=5`);
-const d=await r.json();
-let box=document.getElementById("suggest");
-box.style.display="block";
-box.innerHTML=d.map(x=>
-`<div style="padding:6px;cursor:pointer"
-onclick="selectCity(${x.lat},${x.lon},'${x.display_name}')">
-${x.display_name}</div>`).join('');
+    const φ1=toRad(lat);
+    const λ1=toRad(lng);
+
+    const φ2=Math.asin(
+        Math.sin(φ1)*Math.cos(δ)+
+        Math.cos(φ1)*Math.sin(δ)*Math.cos(θ)
+    );
+
+    const λ2=λ1+Math.atan2(
+        Math.sin(θ)*Math.sin(δ)*Math.cos(φ1),
+        Math.cos(δ)-Math.sin(φ1)*Math.sin(φ2)
+    );
+
+    return {lat:toDeg(φ2),lng:toDeg(λ2)};
 }
 
-function selectCity(lat,lon,name){
-endPt={lat:parseFloat(lat),lng:parseFloat(lon)};
-document.getElementById("endCity").value=name.split(',')[0];
-document.getElementById("suggest").style.display="none";
-map.setView([lat,lon],8);
-}
+//================= WEATHER =================//
 
-// ---------- بدء الطيران ----------
+async function loadWeather(lat,lng){
 
-function initFlight(){
+const key="YOUR_API_KEY";
 
-let sc=document.getElementById("startCoords").value.split(",");
-startPt={lat:parseFloat(sc[0]),lng:parseFloat(sc[1])};
-
-currentPos={...startPt};
-
-if(pigeon)map.removeLayer(pigeon);
-if(trail)map.removeLayer(trail);
-
-pigeon=L.marker(startPt,{
-icon:L.divIcon({html:"🕊️",className:""})
-}).addTo(map);
-
-trail=L.polyline([],{
-color:"#00d4ff",
-weight:3
-}).addTo(map);
-
-map.fitBounds([startPt,endPt]);
-
-lastFrame=performance.now();
-requestAnimationFrame(updateFlight);
-}
-
-// ---------- محرك الطيران ----------
-
-function updateFlight(t){
-
-let dt=(t-lastFrame)/1000;
-lastFrame=t;
-
-let bearing=Math.atan2(
-endPt.lng-currentPos.lng,
-endPt.lat-currentPos.lat
+const r = await fetch(
+`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${key}&units=metric`
 );
 
-let windEffect=weather.speed*
-Math.cos(toRad(weather.deg)-bearing);
+const d = await r.json();
 
-let humidityFactor=1+(weather.humidity/200);
-
-let speed=BASE_SPEED+windEffect*0.5;
-if(speed<40)speed=40;
-
-let moveKm=(speed/3600)*dt;
-
-let driftLat=Math.sin(t/5000)*0.001*humidityFactor;
-let driftLng=Math.cos(t/6000)*0.001*humidityFactor;
-
-currentPos.lat+=moveKm*Math.cos(bearing)+driftLat;
-currentPos.lng+=moveKm*Math.sin(bearing)+driftLng;
-
-pigeon.setLatLng([currentPos.lat,currentPos.lng]);
-
-trail.addLatLng([currentPos.lat,currentPos.lng]);
-
-document.getElementById("speed")
-.innerText=((speed*1000)/60).toFixed(1)+" م/د";
-
-document.getElementById("remain")
-.innerText=distance(currentPos,endPt).toFixed(2)+" Km";
-
-document.getElementById("wind")
-.innerText=weather.speed+" km/h "+windDirectionName(weather.deg);
-
-document.getElementById("humidity")
-.innerText=weather.humidity+"%";
-
-if(distance(currentPos,endPt)<0.3)return;
-
-requestAnimationFrame(updateFlight);
+weather.speed = d.wind.speed;
+weather.deg = d.wind.deg;
+weather.humidity = d.main.humidity;
 }
 
-// ---------- نتائج ----------
+//================= PIGEON CLASS =================//
 
-function recordRacer(){
+class Pigeon{
 
-let name=document.getElementById("rName").value;
-let dist=parseFloat(document.getElementById("rDist").value);
-let arrival=document.getElementById("rArrival").value;
-let start=document.getElementById("startClock").value;
+constructor(start,end){
 
-if(!name||!dist||!arrival||!start)
-return alert("أدخل كل البيانات");
+this.pos={...start};
+this.end=end;
+this.vel=18;
+this.energy=100;
+this.marker=L.circleMarker(
+[start.lat,start.lng],
+{radius:6,color:'cyan'}
+).addTo(map);
 
-let [sh,sm,ss]=start.split(':');
-let [ah,am,as]=arrival.split(':');
+this.trail=L.polyline(
+[[start.lat,start.lng]],
+{color:'yellow'}
+).addTo(map);
 
-let startSec=(+sh*3600)+(+sm*60)+(+ss||0);
-let arrivalSec=(+ah*3600)+(+am*60)+(+as||0);
-
-let flightMin=(arrivalSec-startSec)/60;
-if(flightMin<=0)return alert("وقت غير صحيح");
-
-let speed=(dist*1000)/flightMin;
-
-racers.push({name,dist,speed});
-
-racers.sort((a,b)=>b.speed-a.speed);
-
-renderBoard();
 }
 
-function renderBoard(){
-document.getElementById("board").innerHTML=
-racers.map((r,i)=>
-`<tr>
-<td>${i+1}</td>
-<td>${r.name}</td>
-<td>${r.dist}</td>
-<td>${r.speed.toFixed(2)} م/د</td>
-</tr>`).join('');
+update(dt){
+
+const dist=haversine(this.pos,this.end);
+if(dist<20) return false;
+
+const brg=bearing(this.pos,this.end);
+
+const airDensity=
+1.225*(1-weather.humidity/200);
+
+const drag=
+0.5*airDensity*Cd*AREA*
+(this.vel*this.vel);
+
+const accel=
+(BASE_THRUST-drag)/MASS;
+
+this.vel+=accel*dt;
+
+if(this.vel<10) this.vel=10;
+if(this.vel>28) this.vel=28;
+
+const windEffect=
+weather.speed*Math.cos(
+toRad(weather.deg-brg)
+);
+
+const groundSpeed=
+this.vel+windEffect;
+
+const step=
+groundSpeed*dt;
+
+this.pos=
+move(this.pos.lat,this.pos.lng,
+brg,step);
+
+this.marker.setLatLng(
+[this.pos.lat,this.pos.lng]
+);
+
+this.trail.addLatLng(
+[this.pos.lat,this.pos.lng]
+);
+
+this.energy-=0.01*dt;
+
+return true;
 }
+
+}
+
+//================= RACE =================//
+
+async function startRace(){
+
+const lat=parseFloat(
+document.getElementById("startLat").value);
+
+const lng=parseFloat(
+document.getElementById("startLng").value);
+
+const city=
+document.getElementById("destCity").value;
+
+const startTime=
+new Date(
+document.getElementById("startTime").value
+).getTime();
+
+if(!lat||!lng||!city) return;
+
+const geo=
+await fetch(
+`https://nominatim.openstreetmap.org/search?format=json&q=${city}`
+);
+
+const res=await geo.json();
+
+const end={
+lat:parseFloat(res[0].lat),
+lng:parseFloat(res[0].lon)
+};
+
+await loadWeather(lat,lng);
+
+raceData={
+start:{lat,lng},
+end,
+startTime
+};
+
+localStorage.setItem(
+"raceData",
+JSON.stringify(raceData)
+);
+
+pigeons=[
+new Pigeon(raceData.start,raceData.end)
+];
+
+requestAnimationFrame(loop);
+}
+
+//================= LOOP =================//
+
+let last=performance.now();
+
+function loop(now){
+
+const dt=(now-last)/1000;
+last=now;
+
+if(!raceData){
+requestAnimationFrame(loop);
+return;
+}
+
+const elapsed=
+(Date.now()-raceData.startTime)/1000;
+
+if(elapsed<0){
+requestAnimationFrame(loop);
+return;
+}
+
+let active=false;
+
+for(let p of pigeons){
+if(p.update(dt)) active=true;
+}
+
+updateStats();
+
+if(active) requestAnimationFrame(loop);
+}
+
+//================= STATS =================//
+
+function updateStats(){
+
+const p=pigeons[0];
+
+const remain=
+(haversine(p.pos,p.end)/1000)
+.toFixed(2);
+
+document.getElementById("stats")
+.innerHTML=
+`
+المسافة المتبقية: ${remain} Km<br>
+السرعة الأرضية: ${p.vel.toFixed(2)} m/s<br>
+طاقة متبقية: ${p.energy.toFixed(1)} %<br>
+الرياح: ${weather.speed} m/s<br>
+اتجاه الرياح: ${weather.deg}°<br>
+الرطوبة: ${weather.humidity} %
+`;
+}
+
+//================= RESTORE =================//
+
+window.onload=()=>{
+
+const saved=
+localStorage.getItem("raceData");
+
+if(saved){
+raceData=JSON.parse(saved);
+pigeons=[
+new Pigeon(raceData.start,
+raceData.end)
+];
+requestAnimationFrame(loop);
+}
+};
 
 </script>
 </body>
