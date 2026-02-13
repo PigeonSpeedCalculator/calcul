@@ -1,242 +1,250 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ELMAKKAOUY REAL-FLIGHT V3</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <style>
-        :root { --primary: #00d4ff; --bg: #020617; --card: #1e293b; --text: #f8fafc; }
-        body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
-        #map { height: 50vh; width: 100%; border-bottom: 2px solid var(--primary); }
-        .stats-bar { 
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; 
-            background: rgba(15, 23, 42, 0.9); padding: 15px; margin: -20px 10px 10px; 
-            border-radius: 15px; position: relative; z-index: 1000; border: 1px solid var(--primary);
-            backdrop-filter: blur(10px);
-        }
-        .stat-item { text-align: center; border-bottom: 1px solid #334155; padding-bottom: 5px; }
-        .stat-item b { display: block; color: var(--primary); font-size: 1.2em; }
-        .stat-item span { font-size: 0.75em; color: #94a3b8; font-weight: bold; }
-        .panel { padding: 15px; background: var(--card); border-radius: 12px; margin: 10px; border: 1px solid #334155; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        h3 { margin-top: 0; color: var(--primary); font-size: 1.1em; border-right: 3px solid var(--primary); padding-right: 10px; }
-        input, button { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; font-size: 15px; box-sizing: border-box; }
-        button { background: var(--primary); color: #000; font-weight: bold; border: none; cursor: pointer; transition: 0.3s; }
-        button:active { transform: scale(0.98); }
-        table { width: 100%; margin-top: 10px; border-collapse: collapse; font-size: 0.8em; }
-        th, td { padding: 10px; border-bottom: 1px solid #334155; text-align: center; }
-        #bird-icon { font-size: 30px; filter: drop-shadow(0 0 8px #fff); transition: transform 0.5s ease; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ELMAKKAOUY REAL FLIGHT V5</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+body{margin:0;background:#020617;color:white;font-family:Segoe UI}
+#map{height:55vh}
+.panel{padding:15px;background:#1e293b}
+input,button{width:100%;padding:10px;margin-top:5px}
+button{background:#00d4ff;color:black;font-weight:bold;border:none}
+.stats{display:flex;justify-content:space-around;padding:10px;background:#0f172a}
+</style>
 </head>
+
 <body>
 
 <div id="map"></div>
 
-<div class="stats-bar">
-    <div class="stat-item"><span>🕊️ السرعة اللحظية</span><b id="st-birdspeed">0 m/min</b></div>
-    <div class="stat-item"><span>🕒 الوصول المتوقع</span><b id="st-eta" style="color:#fbbf24">--:--:--</b></div>
-    <div class="stat-item"><span>📏 المسافة المتبقية</span><b id="st-rem-dist">0 Km</b></div>
-    <div class="stat-item"><span>🌬️ تأثير الرياح</span><b id="st-wind">0 km/h</b></div>
+<div class="stats">
+<div>السرعة: <span id="speed">0</span></div>
+<div>المتبقي: <span id="remain">0</span></div>
+<div>الرياح: <span id="wind">0</span></div>
 </div>
 
 <div class="panel">
-    <h3>📍 إعدادات الرحلة</h3>
-    <input id="startCoords" placeholder="إحداثيات الإطلاق (مثلاً: 33.57, -7.58)">
-    <input id="endInput" placeholder="بحث عن مدينة الوصول..." oninput="searchLoc(this.value)">
-    <div id="sugEnd" style="background:#1e293b; border:1px solid #00d4ff; display:none; position:absolute; z-index:2000; width:85%; max-height:150px; overflow-y:auto; border-radius:8px;"></div>
-    <input type="datetime-local" id="startTime">
-    <button onclick="startFlight()">تشغيل المحاكاة الواقعية 🚀</button>
-</div>
-
-<div class="panel">
-    <h3>📊 نتائج المتسابقين</h3>
-    <div style="display: flex; gap: 5px;">
-        <input id="rName" placeholder="الاسم">
-        <input id="rDist" type="number" placeholder="Km" step="0.001">
-        <input id="rTime" type="time" step="1">
-    </div>
-    <button onclick="recordRacer()" style="background:#22c55e; color:white">تسجيل النتيجة</button>
-    <table id="leaderboardTable">
-        <thead><tr><th>#</th><th>الاسم</th><th>Km</th><th>م/د</th></tr></thead>
-        <tbody id="leaderboard"></tbody>
-    </table>
-    <button onclick="clearCache()" style="background:#ef4444; color:white; margin-top:15px; font-size:11px; padding:5px;">إعادة ضبط النظام كاملاً</button>
+<input id="startCoords" placeholder="33.57,-7.58">
+<input id="endCoords" placeholder="35.77,-5.80">
+<input type="datetime-local" id="startTime">
+<button onclick="initFlight()">بدء السباق</button>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script>
-// إعداد الخريطة الهجينة
-let map = L.map('map', {zoomControl: false}).setView([33.5, -7.5], 7);
-L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}').addTo(map);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png').addTo(map);
+let map = L.map('map').setView([33.5,-7.5],6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-let pigeon, trail, points = [], startPt, endPt, racers = [];
-let weather = { windKm: 0, deg: 0 };
-const BASE_SPEED_KMH = 72; // السرعة الطبيعية للحمام الزاجل
+let startPt,endPt;
+let path=[];
+let pigeon,trail;
+let currentIndex=0;
+let BASE_SPEED=70;
+let weather={windKm:15,deg:300};
+let lastFrame=null;
 
-// نظام الحفظ التلقائي
-window.onload = () => {
-    const saved = JSON.parse(localStorage.getItem('flight_v3'));
-    if (saved) {
-        document.getElementById('startCoords').value = saved.startCoords || '';
-        document.getElementById('endInput').value = saved.endName || '';
-        document.getElementById('startTime').value = saved.startTime || '';
-        endPt = saved.endPt;
-        weather = saved.weather || { windKm: 0, deg: 0 };
-        racers = saved.racers || [];
-        updateLeaderboard();
-        if (saved.startTime && endPt) startFlight();
-    }
+// ------------------ Utilities ------------------
+
+function toRad(x){return x*Math.PI/180}
+function toDeg(x){return x*180/Math.PI}
+
+function distance(a,b){
+return map.distance([a.lat,a.lng],[b.lat,b.lng])/1000;
+}
+
+// ------------------ Elevation ------------------
+
+async function getElevationBatch(points){
+
+const body={
+locations:points.map(p=>({latitude:p.lat,longitude:p.lng}))
 };
 
-async function searchLoc(q) {
-    if(q.length < 3) return;
-    try {
-        const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=5`);
-        const d = await r.json();
-        const box = document.getElementById('sugEnd');
-        box.style.display = 'block';
-        box.innerHTML = d.map(x => `<div style="padding:12px; border-bottom:1px solid #334155; cursor:pointer;" onclick="selectEnd(${x.lat}, ${x.lon}, '${x.display_name}')">${x.display_name}</div>`).join('');
-    } catch(e) {}
+const r=await fetch("https://api.open-elevation.com/api/v1/lookup",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify(body)
+});
+
+const d=await r.json();
+return d.results.map(x=>x.elevation);
 }
 
-function selectEnd(lat, lon, name) {
-    endPt = {lat: parseFloat(lat), lng: parseFloat(lon)};
-    document.getElementById('endInput').value = name.split(',')[0];
-    document.getElementById('sugEnd').style.display = 'none';
-    getWeather(lat, lon);
+// ------------------ Grid Generation ------------------
+
+function generateGrid(start,end,stepKm=10){
+
+let minLat=Math.min(start.lat,end.lat);
+let maxLat=Math.max(start.lat,end.lat);
+let minLng=Math.min(start.lng,end.lng);
+let maxLng=Math.max(start.lng,end.lng);
+
+let grid=[];
+
+for(let lat=minLat;lat<=maxLat;lat+=stepKm/111){
+for(let lng=minLng;lng<=maxLng;lng+=stepKm/111){
+grid.push({lat,lng});
+}
+}
+return grid;
 }
 
-async function getWeather(lat, lon) {
-    // محاولة جلب الطقس، مع قيم افتراضية ذكية للمغرب في حال فشل الـ API
-    try {
-        const r = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=992e2b79f5e3386bda09d14ff4807f9d`);
-        const d = await r.json();
-        weather = { windKm: d.wind.speed * 3.6, deg: d.wind.deg };
-    } catch(e) {
-        weather = { windKm: 15, deg: 300 }; // رياح شمالية غربية افتراضية (Chergui)
-    }
-    document.getElementById('st-wind').innerText = weather.windKm.toFixed(1) + " km/h";
-    saveData();
+// ------------------ A* ------------------
+
+function heuristic(a,b){
+return distance(a,b);
 }
 
-function saveData() {
-    const data = {
-        startCoords: document.getElementById('startCoords').value,
-        endName: document.getElementById('endInput').value,
-        startTime: document.getElementById('startTime').value,
-        endPt, weather, racers
-    };
-    localStorage.setItem('flight_v3', JSON.stringify(data));
+function key(p){return p.lat.toFixed(4)+","+p.lng.toFixed(4)}
+
+function findNeighbors(node,grid,stepKm=10){
+return grid.filter(p=>distance(p,node)<=stepKm*1.5);
 }
 
-function startFlight() {
-    const sc = document.getElementById('startCoords').value.split(',');
-    if(sc.length < 2 || !endPt) return;
-    startPt = {lat: parseFloat(sc[0]), lng: parseFloat(sc[1])};
-    
-    if(pigeon) map.removeLayer(pigeon);
-    if(trail) map.removeLayer(trail);
-    
-    pigeon = L.marker(startPt, {icon: L.divIcon({html: '<div id="bird-icon">🕊️</div>', className: ''})}).addTo(map);
-    trail = L.polyline([], {color: '#00d4ff', weight: 4, opacity: 0.7}).addTo(map);
-    
-    map.fitBounds([startPt, endPt], {padding: [50, 50]});
-    requestAnimationFrame(updateFrame);
+async function buildPath(){
+
+let grid=generateGrid(startPt,endPt,15);
+
+let elevations=await getElevationBatch(grid);
+
+let costMap={};
+
+grid.forEach((p,i)=>{
+let elev=elevations[i];
+
+if(elev<=0) costMap[key(p)]=99999; // بحر
+else if(elev>1200) costMap[key(p)]=50; // جبل
+else costMap[key(p)]=1;
+});
+
+let open=[startPt];
+let cameFrom={};
+let gScore={};
+gScore[key(startPt)]=0;
+
+while(open.length){
+
+open.sort((a,b)=>
+(gScore[key(a)]+heuristic(a,endPt))-
+(gScore[key(b)]+heuristic(b,endPt))
+);
+
+let current=open.shift();
+
+if(distance(current,endPt)<20){
+let total=[current];
+while(cameFrom[key(current)]){
+current=cameFrom[key(current)];
+total.push(current);
+}
+return total.reverse();
 }
 
-function updateFrame() {
-    const startVal = document.getElementById('startTime').value;
-    if(!startVal || !endPt) return;
-    
-    const now = new Date();
-    const startT = new Date(startVal);
-    const elapsedH = (now - startT) / 3600000;
-    
-    if(elapsedH < 0) {
-        document.getElementById('st-eta').innerText = "في انتظار الإطلاق";
-        requestAnimationFrame(updateFrame);
-        return;
-    }
+let neighbors=findNeighbors(current,grid);
 
-    const totalDist = map.distance(startPt, endPt) / 1000;
-    const bearing = (Math.atan2(endPt.lng - startPt.lng, endPt.lat - startPt.lat) * 180 / Math.PI);
-    
-    // محاكاة فيزياء الطيران (الرياح والرطوبة)
-    const rad = (weather.deg - bearing) * Math.PI / 180;
-    const windEffect = Math.cos(rad) * weather.windKm;
-    
-    // سرعة الحمامة (تتراوح بين 900 و 1800 م/د)
-    const currentKmh = BASE_SPEED_KMH + (windEffect * 1.5); 
-    const currentMmin = (currentKmh * 1000) / 60;
-    
-    let progress = (elapsedH * currentKmh) / totalDist;
-    if(progress > 1) progress = 1;
+for(let n of neighbors){
 
-    // عامل الرطوبة والتعرج الطبيعي
-    // الحمام يميل للتعرج بحثاً عن الرطوبة المعتدلة (تذبذب جيبي معقد)
-    const humidityWobble = Math.sin(progress * 30) * 0.005 * (1 + (weather.windKm / 50));
-    const curLat = startPt.lat + (endPt.lat - startPt.lat) * progress + humidityWobble;
-    const curLng = startPt.lng + (endPt.lng - startPt.lng) * progress + (Math.cos(progress * 20) * 0.003);
+let tentative=gScore[key(current)]
++distance(current,n)
++costMap[key(n)];
 
-    const pos = [curLat, curLng];
-    pigeon.setLatLng(pos);
-    points.push(pos);
-    trail.setLatLngs(points);
-    
-    // تدوير أيقونة الحمامة باتجاه الطيران
-    document.getElementById('bird-icon').style.transform = `rotate(${bearing}deg)`;
+if(gScore[key(n)]===undefined
+|| tentative<gScore[key(n)]){
 
-    // تحديث الإحصائيات
-    document.getElementById('st-birdspeed').innerText = currentMmin.toFixed(2) + " m/min";
-    const remK = totalDist * (1 - progress);
-    document.getElementById('st-rem-dist').innerText = remK.toFixed(2) + " Km";
+cameFrom[key(n)]=current;
+gScore[key(n)]=tentative;
 
-    if(progress < 1) {
-        const remH = remK / currentKmh;
-        const etaDate = new Date(now.getTime() + remH * 3600000);
-        document.getElementById('st-eta').innerText = etaDate.getHours().toString().padStart(2,'0') + ":" + 
-                                                     etaDate.getMinutes().toString().padStart(2,'0') + ":" + 
-                                                     etaDate.getSeconds().toString().padStart(2,'0');
-        requestAnimationFrame(updateFrame);
-    } else {
-        document.getElementById('st-eta').innerText = "تم الوصول";
-    }
+if(!open.find(p=>key(p)==key(n)))
+open.push(n);
+}
+}
+}
+return [startPt,endPt];
 }
 
-function recordRacer() {
-    const name = document.getElementById('rName').value;
-    const dist = parseFloat(document.getElementById('rDist').value);
-    const timeVal = document.getElementById('rTime').value;
-    const startVal = document.getElementById('startTime').value;
+// ------------------ Flight ------------------
 
-    if(!name || !dist || !timeVal || !startVal) return alert("املأ كافة الحقول");
+async function initFlight(){
 
-    const start = new Date(startVal);
-    const [h, m, s] = timeVal.split(':');
-    const end = new Date(startVal.split('T')[0] + `T${h}:${m}:${s || '00'}`);
-    
-    const diffMin = (end - start) / 60000;
-    const speed = (dist * 1000) / diffMin;
+let s=document.getElementById("startCoords").value.split(",");
+let e=document.getElementById("endCoords").value.split(",");
 
-    racers.push({ name, dist, speed });
-    racers.sort((a,b) => b.speed - a.speed);
-    saveData();
-    updateLeaderboard();
+startPt={lat:parseFloat(s[0]),lng:parseFloat(s[1])};
+endPt={lat:parseFloat(e[0]),lng:parseFloat(e[1])};
+
+path=await buildPath();
+
+if(pigeon) map.removeLayer(pigeon);
+if(trail) map.removeLayer(trail);
+
+pigeon=L.marker(startPt,{
+icon:L.divIcon({html:"🕊️",className:""})
+}).addTo(map);
+
+trail=L.polyline(path,{color:"#00d4ff"}).addTo(map);
+
+map.fitBounds(path);
+
+currentIndex=0;
+lastFrame=performance.now();
+
+requestAnimationFrame(updateFlight);
 }
 
-function updateLeaderboard() {
-    document.getElementById('leaderboard').innerHTML = racers.map((r, i) => `
-        <tr><td>${i+1}</td><td>${r.name}</td><td>${r.dist}</td><td style="color:var(--primary); font-weight:bold">${r.speed.toFixed(3)}</td></tr>
-    `).join('');
+function updateFlight(t){
+
+let dt=(t-lastFrame)/1000;
+lastFrame=t;
+
+if(currentIndex>=path.length-1) return;
+
+let a=path[currentIndex];
+let b=path[currentIndex+1];
+
+let segmentDist=distance(a,b);
+
+let windEffect=
+weather.windKm*Math.cos(
+toRad(weather.deg)
+);
+
+let speed=BASE_SPEED+windEffect*0.5;
+if(speed<40) speed=40;
+
+let moveKm=(speed/3600)*dt;
+
+if(moveKm>=segmentDist){
+currentIndex++;
+}else{
+
+let ratio=moveKm/segmentDist;
+
+let newLat=a.lat+(b.lat-a.lat)*ratio;
+let newLng=a.lng+(b.lng-a.lng)*ratio;
+
+path[currentIndex]={lat:newLat,lng:newLng};
 }
 
-function clearCache() {
-    if(confirm("سيتم حذف كافة البيانات والنتائج، هل أنت متأكد؟")) {
-        localStorage.removeItem('flight_v3');
-        location.reload();
-    }
+pigeon.setLatLng(path[currentIndex]);
+
+document.getElementById("speed")
+.innerText=((speed*1000)/60).toFixed(1)+" m/min";
+
+let remain=0;
+for(let i=currentIndex;i<path.length-1;i++)
+remain+=distance(path[i],path[i+1]);
+
+document.getElementById("remain")
+.innerText=remain.toFixed(1)+" Km";
+
+requestAnimationFrame(updateFlight);
 }
+
 </script>
 </body>
 </html>
